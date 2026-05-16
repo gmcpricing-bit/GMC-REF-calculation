@@ -97,12 +97,42 @@ function render(){const c=calc(data); const o=calc(original);
  document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
  const rows=[['Paid + O/S claims',money(data.claims),'Uploaded E8'],['Days elapsed / exposure days',c.daysElapsed+' days','Auto: claims-as-on date minus exposure start; if renewal start is future, prior-year start is used'],['Annualised claims',money(c.annual),'Claims × 365 ÷ auto days elapsed'],['Exposure adjusted',money(c.inc),'Annualised × quote HC ÷ average lives'],['IBNR loaded',money(c.ibnr),'Exposure adjusted ÷ (1 - IBNR%)'],['Inflation/Admin loaded',money(c.infl),'IBNR loaded ÷ (1 - inflation/admin%)'],['TPA loaded',money(c.tpa),'Inflation loaded ÷ (1 - TPA%)'],['REF price',money(c.ref),'TPA loaded ÷ (1 - brokerage%)']];
  document.getElementById('bridge').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');}
-function updateHash(){try{location.hash=btoa(unescape(encodeURIComponent(JSON.stringify({data,original,approval}))))}catch(e){}}
-function loadHash(){if(location.hash.length>5){try{const obj=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1))))); if(obj.data){data={...sample,...obj.data}; original={...sample,...(obj.original||obj.data)}; approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})};} else {data={...sample,...obj}; original={...data};} document.getElementById('status').textContent='Loaded shared URL data.'}catch(e){}}}
+function packState(){return {v:5,data,original,approval};}
+function toUrlSafeBase64(str){return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function fromUrlSafeBase64(str){str=String(str||'').replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4) str+='='; return decodeURIComponent(escape(atob(str)));}
+function updateHash(){
+ try{
+   const payload=JSON.stringify(packState());
+   const encoded='s='+toUrlSafeBase64(payload);
+   history.replaceState(null,'',location.pathname+'#'+encoded);
+   localStorage.setItem('gmc_ref_last_state',payload);
+ }catch(e){console.warn('State save failed',e);}
+}
+function applyLoadedObject(obj,source){
+ if(obj && obj.data){data={...sample,...obj.data}; original={...sample,...(obj.original||obj.data)}; approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})}; document.getElementById('status').textContent='Loaded saved/shared data from '+source+'.'; return true;}
+ if(obj && (obj.premiumPaid || obj.uwQuote || obj.claims)){data={...sample,...obj}; original={...data}; document.getElementById('status').textContent='Loaded old shared URL data.'; return true;}
+ return false;
+}
+function loadHash(){
+ let loaded=false;
+ if(location.hash.length>5){
+   const raw=location.hash.slice(1);
+   const candidates=[raw.startsWith('s=')?raw.slice(2):raw, raw];
+   for(const cand of candidates){
+     try{ const obj=JSON.parse(fromUrlSafeBase64(cand)); if(applyLoadedObject(obj,'URL')){loaded=true;break;} }catch(e){}
+     try{ const obj=JSON.parse(decodeURIComponent(escape(atob(cand)))); if(applyLoadedObject(obj,'old URL')){loaded=true;break;} }catch(e){}
+     try{ const obj=JSON.parse(decodeURIComponent(cand)); if(applyLoadedObject(obj,'URL text')){loaded=true;break;} }catch(e){}
+   }
+   if(!loaded) document.getElementById('status').textContent='Shared URL data could not be read. Use Copy share link again from the approved page.';
+ }
+ if(!loaded){
+   try{ const saved=localStorage.getItem('gmc_ref_last_state'); if(saved) applyLoadedObject(JSON.parse(saved),'this browser autosave'); }catch(e){}
+ }
+}
 function importWorkbook(wb){const name=wb.SheetNames.includes('Parents')?'Parents':wb.SheetNames[0]; const ws=wb.Sheets[name]; data={clientName:name,policyStart:excelDate(cell(ws,'D1')),lastHeadcount:num(cell(ws,'F4')),quoteHeadcount:num(cell(ws,'F5')),premiumPaid:num(cell(ws,'E6')),uwQuote:num(cell(ws,'E7')),claimsAsOn:excelDate(cell(ws,'D8')),claims:num(cell(ws,'E8')),ibnrPct:num(cell(ws,'D11'),0.03),inflationPct:num(cell(ws,'D12'),0.03),tpaPct:num(cell(ws,'D13'),0.03),brokeragePct:num(cell(ws,'D14'),0.075),brokerTarget:num(cell(ws,'G14'))}; original={...data}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Imported sheet: '+name+'; days elapsed is now auto-calculated and locked.';}
 document.getElementById('file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true}); importWorkbook(wb);}catch(err){document.getElementById('status').textContent='Import failed: '+err.message;}}; r.readAsArrayBuffer(f);});
-document.getElementById('copyLink').onclick=async()=>{updateHash(); try{await navigator.clipboard.writeText(location.href); document.getElementById('status').textContent='Share link copied. Data is encoded in the URL after #; no server storage.'}catch(e){prompt('Copy this link',location.href)}};
-document.getElementById('approveHod').onclick=()=>{const name=prompt('HOD name / initials for approval badge (optional)','HOD')||'HOD'; const note=prompt('Approval note (optional)','Reviewed and approved for final export')||''; approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note}; updateHash(); render(); document.getElementById('status').textContent='HOD approval marked. Now click Copy share link again to share the reviewed version.'};
+document.getElementById('copyLink').onclick=async()=>{updateHash(); try{await navigator.clipboard.writeText(location.href); document.getElementById('status').textContent='Share link copied. This is the only link to share; it contains the latest inputs, remarks and HOD approval.'}catch(e){prompt('Copy this link',location.href)}};
+document.getElementById('approveHod').onclick=()=>{const name=prompt('HOD name / initials for approval badge (optional)','HOD')||'HOD'; const note=prompt('Approval note (optional)','Reviewed and approved for final export')||''; approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note}; updateHash(); render(); document.getElementById('status').textContent='HOD approval marked. Copy share link has also been updated. Share that full URL on WhatsApp.'};
 document.getElementById('clearApproval').onclick=()=>{approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='HOD approval cleared.'};
 document.getElementById('resetSample').onclick=()=>{data={...sample}; original={...sample}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Reset to attached Excel sample values.'};
 document.getElementById('resetOriginal').onclick=()=>{data={...original}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Reset current inputs to uploaded original baseline. HOD approval cleared because numbers changed.'};
