@@ -35,6 +35,377 @@ input[type=date],input[type=text]{text-align:left}
 button{border:0;border-radius:12px;padding:11px 13px;font-weight:700;cursor:pointer;background:#175cd3;color:#fff;font-size:14px}
 .secondary{background:#475467}
 .ghost{background:#fff;color:#175cd3;border:1px solid #b2ccff}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.note{font-size:12px;color:var(--muted);line-height:1.45}
+.pill{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700}
+.ok{background:#dcfae6;color:#067647}
+.bad{background:#fee4e2;color:#b42318}
+.mid{background:#fef0c7;color:#b54708}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px;border-bottom:1px solid #eef2f7;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:#475467;background:#f8fafc}
+.hidden{display:none}
+.collapsedBox{display:none}
+.showBox{display:block}
+.pos{color:#067647;font-weight:700}
+.neg{color:#b42318;font-weight:700}
+.readonlyInput{background:#f8fafc!important;color:#667085}
+.approvalBanner{display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid #75e0a7;background:#ecfdf3;color:#05603a;font-weight:800}
+.approvalBanner .sub{display:block;font-size:12px;font-weight:600;color:#067647;margin-top:3px}
+.tamperBanner{display:block!important;border-color:#f04438!important;background:#fef3f2!important;color:#b42318!important}
+.tamperBanner .sub{color:#b42318!important}
+.approvalBox{border:1px dashed #98a2b3;background:#f8fafc;border-radius:14px;padding:10px;margin-top:8px}
+.modeBanner{border:1px solid #b2ccff;background:#eff6ff;color:#1849a9;border-radius:14px;padding:10px;margin:10px 0;font-weight:700}
+.verifyGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(min-width:800px){.verifyGrid{grid-template-columns:repeat(4,1fr)}}
+.verifyItem{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.verifyItem .t{font-size:11px;color:var(--muted)}
+.verifyItem .v{font-weight:800;margin-top:4px}
+.stickyResult{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#101828;color:#fff;padding:10px 14px;box-shadow:0 -8px 24px rgba(16,24,40,.18);display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stickyResult div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px}
+.stickyResult .t{font-size:11px;color:#cbd5e1}
+.stickyResult .v{font-size:17px;font-weight:800;margin-top:2px}
+.stickyResult .full{grid-column:1/-1;font-size:11px;color:#cbd5e1}
+@media(min-width:900px){.stickyResult{left:50%;transform:translateX(-50%);max-width:1050px;border-radius:18px 18px 0 0;grid-template-columns:repeat(5,1fr)}.stickyResult .full{grid-column:auto}}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>GMC RFQ Calculator</h1>
+  <p>Upload Excel / fill manually → verify values → generate HOD link → HOD edits % fields → approval / export</p>
+</header>
+
+<div class="stickyResult">
+  <div><span class="t">Final REF price</span><div class="v" id="mRef">-</div></div>
+  <div><span class="t">UW premium</span><div class="v" id="mUw">-</div></div>
+  <div><span class="t">ICR annualised</span><div class="v" id="mIcr">-</div></div>
+  <div><span class="t">Target loading</span><div class="v" id="mReqLoad">-</div></div>
+  <div><span class="t">UW vs REF saving</span><div class="v" id="mSave">-</div></div>
+  <div class="full" id="mNote">Live result stays visible while HOD edits % inputs.</div>
+</div>
+
+<main>
+  <div id="approvalBanner" class="approvalBanner"></div>
+
+  <div class="card">
+    <h2>1) Upload / fill / verify / share</h2>
+    <div id="modeBanner" class="modeBanner hidden"></div>
+
+    <input id="file" type="file" accept=".xlsx,.xls" style="text-align:left" />
+
+    <div class="bar">
+      <button id="manualEntry" class="ghost">Fill manually online</button>
+      <button id="verifyData" class="ghost">Mark values verified</button>
+      <button id="hodLink">Generate HOD review link</button>
+      <button id="copyLink" class="ghost">Copy current link</button>
+      <button class="secondary" id="exportXlsx">Export final Excel</button>
+      <button class="ghost" id="approveHod">Final approval by HOD</button>
+      <button class="ghost" id="clearApproval">Clear approval</button>
+      <button class="ghost" id="resetBlank">Reset blank</button>
+      <button class="ghost" id="resetOriginal">Reset to uploaded original</button>
+    </div>
+
+    <div id="verifyPanel" class="verifyGrid"></div>
+    <div id="status" class="note">Upload Excel or click Fill manually online.</div>
+    <div id="approvalBox" class="approvalBox note">Approval status: Not reviewed by HOD.</div>
+    <div class="note">Data is stored inside the URL after #. After every edit/approval, click Generate HOD review link or Copy current link again.</div>
+  </div>
+
+  <section class="card">
+    <h2>Live result</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="t">REF price</div><div class="v" id="kRef">-</div><div class="s">Calculated final price</div></div>
+      <div class="kpi"><div class="t">UW quote</div><div class="v" id="kUw">-</div><div class="s">Uploaded / entered UW quote</div></div>
+      <div class="kpi"><div class="t">UW quote saving</div><div class="v" id="kSave">-</div><div class="s" id="kSaveS">-</div></div>
+      <div class="kpi"><div class="t">ICR annualised</div><div class="v" id="kIcr">-</div><div class="s">Annualised claims / paid premium</div></div>
+      <div class="kpi"><div class="t">Loading needed for broker target</div><div class="v" id="kReqLoad">-</div><div class="s" id="kReqLoadS">-</div></div>
+    </div>
+    <div id="badge" style="margin-top:12px"></div>
+  </section>
+
+  <section class="card blue">
+    <h2>Suggested loading to match broker target</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="t">Current total loading before brokerage</div><div class="v" id="sCurrentLoad">-</div><div class="s">IBNR + inflation/admin + TPA compounded</div></div>
+      <div class="kpi"><div class="t">Required total loading</div><div class="v" id="sReqLoad">-</div><div class="s">To exactly match broker target</div></div>
+      <div class="kpi"><div class="t">Suggested change</div><div class="v" id="sGapLoad">-</div><div class="s" id="sGapText">-</div></div>
+      <div class="kpi"><div class="t">Current vs target price</div><div class="v" id="sPriceGap">-</div><div class="s">Final REF minus broker target</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>HOD change impact on same screen</h2>
+    <table>
+      <thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
+      <tbody id="impact"></tbody>
+    </table>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <h2 id="inputTitle">2) Inputs</h2>
+      <div class="note" id="inputNote">Maker can upload Excel or fill manually. HOD sees only % fields by default.</div>
+      <div class="bar"><button class="ghost" id="toggleAllInputs">View / hide uploaded source inputs</button></div>
+      <div id="pctInputs"></div>
+      <div id="sourceInputs" class="showBox"></div>
+    </section>
+
+    <section class="card">
+      <h2>3) Auto-calculated outputs</h2>
+      <div id="outputs"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Calculation bridge</h2>
+    <table>
+      <thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
+      <tbody id="bridge"></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+const blank={
+  clientName:'',
+  policyStart:'',
+  lastHeadcount:'',
+  quoteHeadcount:'',
+  premiumPaid:'',
+  uwQuote:'',
+  claimsAsOn:'',
+  claims:'',
+  ibnrPct:0.03,
+  inflationPct:0.03,
+  tpaPct:0.03,
+  brokeragePct:0.075,
+  brokerTarget:''
+};
+
+let data={...blank};
+let original={...blank};
+let approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:''};
+let verified=false;
+let viewMode='maker';
+let showAllInputs=true;
+
+const fields=[
+  ['clientName','Client / Policy name','text'],
+  ['policyStart','Renewal policy start date','date'],
+  ['lastHeadcount','Last year inception headcount','number'],
+  ['quoteHeadcount','Quote headcount','number'],
+  ['premiumPaid','Premium paid till date in expiry policy','number'],
+  ['uwQuote','Underwriting quote','number'],
+  ['claimsAsOn','Claims as on date','date'],
+  ['claims','Claims as on (Paid + O/S)','number'],
+  ['ibnrPct','IBNR loading %','pct'],
+  ['inflationPct','Inflation/Admin loading %','pct'],
+  ['tpaPct','TPA loading %','pct'],
+  ['brokeragePct','Brokerage %','pct'],
+  ['brokerTarget','Broker target price','number']
+];
+
+const pctKeys=new Set(['ibnrPct','inflationPct','tpaPct','brokeragePct']);
+
+function cell(ws,addr){const c=ws[addr];return c?c.v:null}
+
+function excelDate(v){
+  if(!v)return '';
+  if(v instanceof Date)return v.toISOString().slice(0,10);
+  if(typeof v==='number'){
+    const d=XLSX.SSF.parse_date_code(v);
+    if(!d)return '';
+    return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+  }
+  const d=new Date(v);
+  return isNaN(d)?'':d.toISOString().slice(0,10);
+}
+
+function num(v,d=0){
+  let n=Number(String(v??'').replace(/,/g,''));
+  return isFinite(n)?n:d;
+}
+
+function money(n){
+  n=num(n);
+  if(!n)return '-';
+  const a=Math.abs(n),s=n<0?'-':'';
+  if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
+  if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
+  return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
+}
+
+function pct(n){
+  if(!isFinite(num(n)))return '-';
+  return (num(n)*100).toFixed(1)+'%';
+}
+
+function parseLocalDate(s){
+  if(!s)return null;
+  const [y,m,d]=String(s).slice(0,10).split('-').map(Number);
+  if(!y||!m||!d)return null;
+  return new Date(y,m-1,d);
+}
+
+function addYears(dt,yrs){
+  const d=new Date(dt);
+  d.setFullYear(d.getFullYear()+yrs);
+  return d;
+}
+
+function daysElapsedAuto(d=data){
+  const renewalStart=parseLocalDate(d.policyStart),claimsDate=parseLocalDate(d.claimsAsOn);
+  if(!renewalStart||!claimsDate)return 0;
+  const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
+  return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
+}
+
+function calc(d=data){
+  const de=daysElapsedAuto(d);
+  const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
+  const annual=de?num(d.claims)*365/de:0;
+  const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
+  const icrAnn=annual/Math.max(1,num(d.premiumPaid));
+  const inc=avg?annual*num(d.quoteHeadcount)/avg:0;
+  const ibnr=inc/(1-num(d.ibnrPct));
+  const infl=ibnr/(1-num(d.inflationPct));
+  const tpa=infl/(1-num(d.tpaPct));
+  const ref=tpa/(1-num(d.brokeragePct));
+  const diffRef=ref-num(d.brokerTarget);
+  const saveUw=num(d.uwQuote)-ref;
+  const targetBeforeBroker=num(d.brokerTarget)*(1-num(d.brokeragePct));
+  const reqLoadToTarget=inc?targetBeforeBroker/inc-1:0;
+  const currentCombinedLoad=inc?tpa/inc-1:0;
+  const loadGapToTarget=reqLoadToTarget-currentCombinedLoad;
+  return {daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,targetBeforeBroker,reqLoadToTarget,currentCombinedLoad,loadGapToTarget};
+}
+
+function approvalDataOnly(d=data){
+  const obj={};
+  fields.forEach(([k])=>obj[k]=d[k]);
+  return obj;
+}
+
+function dataSig(d=data){return JSON.stringify(approvalDataOnly(d));}
+function isChangedAfterApproval(){return !!(approval.approved&&approval.dataSig&&approval.dataSig!==dataSig(data));}
+
+function fmtDiff(v,type='money'){
+  if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
+  if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
+  return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
+}
+
+function updateHash(){
+  try{
+    location.hash=btoa(unescape(encodeURIComponent(JSON.stringify({data,original,approval,verified,viewMode}))));
+  }catch(e){}
+}
+
+function loadHash(){
+  if(location.hash.length>5){
+    try{
+      const obj=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+      data={...blank,...obj.data};
+      original={...blank,...(obj.original||obj.data)};
+      approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:'',...(obj.approval||{})};
+      verified=!!obj.verified;
+      viewMode=obj.viewMode||'maker';
+      showAllInputs=viewMode!=='hod';
+      document.getElementById('status').textContent='Loaded shared URL data.';
+    }catch(e){}
+  }
+}
+
+function render(){
+  const c=calc(data),o=calc(original);
+  const changed=isChangedAfterApproval();
+  const banner=document.getElementById('approvalBanner');
+  const box=document.getElementById('approvalBox');
+
+  if(approval.approved){
+    banner.style.display='block';
+    banner.className='approvalBanner'+(changed?' tamperBanner':'');
+    banner.innerHTML=(changed?'⚠️ Numbers changed after HOD approval — review required again':`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`)+
+    `<span class="sub">${changed?'Earlier approval no longer matches current figures.':`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`}</span>`;
+    box.innerHTML=changed?'Approval status: <b style="color:#b42318">Changed after HOD approval - review again</b>':`Approval status: <b>Reviewed by HOD</b><br>${approval.approvedAt}`;
+  }else{
+    banner.style.display='none';
+    box.textContent='Approval status: Not reviewed by HOD.';
+  }
+
+  const mode=document.getElementById('modeBanner');
+  mode.className=viewMode==='hod'?'modeBanner':'modeBanner hidden';
+  mode.textContent='HOD review mode: only % loading fields are editable by default.';
+
+  document.getElementById('inputTitle').textContent=viewMode==='hod'?'2) HOD editable % inputs':'2) Maker / manual input fields';
+  document.getElementById('sourceInputs').className=(showAllInputs||viewMode!=='hod')?'showBox':'collapsedBox';
+
+  const pctBox=document.getElementById('pctInputs'),srcBox=document.getElementById('sourceInputs');
+  pctBox.innerHTML='';
+  srcBox.innerHTML='';
+
+  fields.forEach(([k,l,t])=>{
+    const div=document.createElement('div');
+    div.className='row '+(pctKeys.has(k)?'inputRow':'outputRow');
+    let val=data[k]??'';
+    if(t==='pct')val=(num(val)*100).toString();
+    const editable=viewMode!=='hod'||pctKeys.has(k);
+    div.innerHTML=`<label>${l}</label><input class="${editable?'':'readonlyInput'}" id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}" ${editable?'':'readonly'}>`;
+    (pctKeys.has(k)?pctBox:srcBox).appendChild(div);
+
+    document.getElementById('f_'+k).onchange=e=>{
+      if(!editable)return;
+      data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
+      updateHash();
+      render();
+    };
+  });
+
+  const quick=[
+    ['Client',data.clientName],['Policy start',data.policyStart],['Quote HC',data.quoteHeadcount],
+    ['Premium paid',money(data.premiumPaid)],['UW quote',money(data.uwQuote)],
+    ['Claims date',data.claimsAsOn],['Claims',money(data.claims)],['Broker target',money(data.brokerTarget)]
+  ];
+  document.getElementById('verifyPanel').innerHTML=quick.map(x=>`<div class="verifyItem"><div class="t">${x[0]}</div><div class="v">${x[1]||'-'}</div></div>`).join('');
+
+  document.getElementById('kRef').textContent=money(c.ref);
+  document.getElementById('kUw').textContent=money(data.uwQuote);
+  document.getElementById('kSave').textContent=money(c.saveUw);
+  document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';
+  document.getElementById('kIcr').textContent=pct(c.icrAnn);
+  document.getElementById('kReqLoad').textContent=pct(c.reqLoadToTarget);
+  document.getElementById('kReqLoadS').textContent=(c.loadGapToTarget>=0?'Can add ':'Need reduce ')+pct(Math.abs(c.loadGapToTarget));
+
+  document.getElementById('mRef').textContent=money(c.ref);
+  document.getElementById('mUw').textContent=money(data.uwQuote);
+  document.getElementById('mIcr').textContent=pct(c.icrAnn);
+  document.getElementById('mReqLoad').textContent=pct(c.reqLoadToTarget);
+  document.getElementById('mSave').textContent=money(c.saveUw);
+  document.getElementById('mNote').textContent=(changed?'⚠️ Changed after HOD approval - review again. ':'')+(c.loadGapToTarget<0?'Suggested: reduce total loading by ':'Suggested: total loading headroom ')+pct(Math.abs(c.loadGapToTarget));
+
+  document.getElementById('sCurrentLoad').textContent=pct(c.currentCombinedLoad);
+  document.getElementById('sReqLoad').textContent=pct(c.reqLoadToTarget);
+  document.getElementById('sGapLoad').textContent=(c.loadGapToTarget>=0?'+':'-')+pct(Math.abs(c.loadGapToTarget));
+  document.getElementById('sGapText').textContent=c.loadGapToTarget>=0?'Current REF is below target; loading can increase if required.':'Current REF is above target; reduce combined loading to match broker target.';
+  document.getElementById('sPriceGap').textContent=money(c.diffRef);
+
+  const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';
+  document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
+
+  const im=[
+    ['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],
+    ['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],
+    ['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],
+    ['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],
+    ['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')],
+    ['Loading needed for broker target',pct(o.reqLoadToTarget),pct(c.reqLoadToTarget),fmtDiff(c.reqLoadToTarget-o.reqLoadToTarget,'pct')]
+  ];
+  document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+
+  const outs=[
+    ['Days elapsed / exposure days',c.daysElapsed+'.ghost{background:#fff;color:#175cd3;border:1px solid #b2ccff}
 .warn{background:#b42318}
 .bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 .note{font-size:12px;color:var(--muted);line-height:1.45}
