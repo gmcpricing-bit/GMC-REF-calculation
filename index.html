@@ -79,7 +79,6 @@ th{color:#475467;background:#f8fafc}
 
 <main>
 <div id="approvalBanner" class="approvalBanner"></div>
-
 <section class="card">
 <h2>1) Upload / fill / verify / share</h2>
 <input id="file" type="file" accept=".xlsx,.xls" style="text-align:left">
@@ -117,411 +116,61 @@ th{color:#475467;background:#f8fafc}
 <section class="card">
 <h2>HOD change impact on same screen</h2>
 <div class="impact">
-<table>
-<thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
-<tbody id="impact"></tbody>
-</table>
+<table><thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead><tbody id="impact"></tbody></table>
 </div>
 <div class="note">Original upload is locked as baseline when Excel is imported. Any orange-field change immediately updates this table and the KPI cards above.</div>
 </section>
 
 <div class="grid">
-<section class="card" id="inputCard">
-<h2>2) Orange editable inputs</h2>
-<div class="note">HOD can edit orange input fields. Days elapsed / exposure days is auto-calculated and non-editable.</div>
-<div id="inputs"></div>
-</section>
-
-<section class="card">
-<h2>3) Auto-calculated outputs</h2>
-<div id="outputs"></div>
-</section>
+<section class="card" id="inputCard"><h2>2) Orange editable inputs</h2><div class="note">HOD can edit orange input fields. Days elapsed / exposure days is auto-calculated and non-editable.</div><div id="inputs"></div></section>
+<section class="card"><h2>3) Auto-calculated outputs</h2><div id="outputs"></div></section>
 </div>
-
-<section class="card">
-<h2>Calculation bridge</h2>
-<table>
-<thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
-<tbody id="bridge"></tbody>
-</table>
-</section>
+<section class="card"><h2>Calculation bridge</h2><table><thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead><tbody id="bridge"></tbody></table></section>
 </main>
 
 <script>
-const sample={
-clientName:'Sample - Parents',
-policyStart:'2026-06-01',
-lastHeadcount:1106,
-quoteHeadcount:1324,
-premiumPaid:28095825,
-uwQuote:51610488,
-claimsAsOn:'2026-05-06',
-claims:32011918,
-ibnrPct:0.03,
-inflationPct:0.03,
-tpaPct:0.03,
-brokeragePct:0.075,
-brokerTarget:42273882
-};
-
-let data={...sample};
-let original={...sample};
-let approval={approved:false,approvedBy:'',approvedAt:'',note:''};
-
-const fields=[
-['clientName','Client / Policy name','text'],
-['policyStart','Renewal policy start date','date'],
-['lastHeadcount','Last year inception headcount','number'],
-['quoteHeadcount','Quote headcount','number'],
-['premiumPaid','Premium paid till date in expiry policy','number'],
-['uwQuote','Underwriting quote / UW premium','number'],
-['claimsAsOn','Claims as on date','date'],
-['claims','Claims as on (Paid + O/S)','number'],
-['ibnrPct','IBNR loading %','pct'],
-['inflationPct','Inflation/Admin loading %','pct'],
-['tpaPct','TPA loading %','pct'],
-['brokeragePct','Brokerage %','pct'],
-['brokerTarget','Broker target price','number']
-];
-
+const sample={clientName:'Sample - Parents',policyStart:'2026-06-01',lastHeadcount:1106,quoteHeadcount:1324,premiumPaid:28095825,uwQuote:51610488,claimsAsOn:'2026-05-06',claims:32011918,ibnrPct:0.03,inflationPct:0.03,tpaPct:0.03,brokeragePct:0.075,brokerTarget:42273882};
+let data={...sample}, original={...sample}, approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+const fields=[['clientName','Client / Policy name','text'],['policyStart','Renewal policy start date','date'],['lastHeadcount','Last year inception headcount','number'],['quoteHeadcount','Quote headcount','number'],['premiumPaid','Premium paid till date in expiry policy','number'],['uwQuote','Underwriting quote / UW premium','number'],['claimsAsOn','Claims as on date','date'],['claims','Claims as on (Paid + O/S)','number'],['ibnrPct','IBNR loading %','pct'],['inflationPct','Inflation/Admin loading %','pct'],['tpaPct','TPA loading %','pct'],['brokeragePct','Brokerage %','pct'],['brokerTarget','Broker target price','number']];
 function cell(ws,addr){const c=ws[addr];return c?c.v:null}
 function num(v,d=0){let n=Number(String(v??'').replace(/,/g,''));return isFinite(n)?n:d}
-function excelDate(v){
- if(!v)return '';
- if(v instanceof Date)return v.toISOString().slice(0,10);
- if(typeof v==='number'){
-  const d=XLSX.SSF.parse_date_code(v);
-  if(!d)return '';
-  return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
- }
- let d=new Date(v);
- return isNaN(d)?'':d.toISOString().slice(0,10);
-}
-function money(n){
- n=num(n);const a=Math.abs(n);let s=n<0?'-':'';
- if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
- if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
- return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
-}
+function excelDate(v){if(!v)return '';if(v instanceof Date)return v.toISOString().slice(0,10);if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);if(!d)return '';return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`}let d=new Date(v);return isNaN(d)?'':d.toISOString().slice(0,10)}
+function money(n){n=num(n);const a=Math.abs(n);let s=n<0?'-':'';if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0})}
 function pct(n){return (num(n)*100).toFixed(1)+'%'}
-function parseLocalDate(s){
- if(!s)return null;
- const p=String(s).slice(0,10).split('-').map(Number);
- if(p.length<3||!p[0]||!p[1]||!p[2])return null;
- return new Date(p[0],p[1]-1,p[2]);
-}
+function parseLocalDate(s){if(!s)return null;const p=String(s).slice(0,10).split('-').map(Number);if(p.length<3||!p[0]||!p[1]||!p[2])return null;return new Date(p[0],p[1]-1,p[2])}
 function addYears(dt,yrs){const d=new Date(dt);d.setFullYear(d.getFullYear()+yrs);return d}
-function daysElapsedAuto(d=data){
- const renewalStart=parseLocalDate(d.policyStart);
- const claimsDate=parseLocalDate(d.claimsAsOn);
- if(!renewalStart||!claimsDate)return 0;
- const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
- return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
-}
-function calc(d=data){
- const de=daysElapsedAuto(d);
- const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
- const annual=num(d.claims)*365/Math.max(1,de);
- const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
- const icrAnn=annual/Math.max(1,num(d.premiumPaid));
- const inc=annual*num(d.quoteHeadcount)/Math.max(1,avg);
- const ibnr=inc/(1-num(d.ibnrPct));
- const infl=ibnr/(1-num(d.inflationPct));
- const tpa=infl/(1-num(d.tpaPct));
- const ref=tpa/(1-num(d.brokeragePct));
- const diffRef=ref-num(d.brokerTarget);
- const saveUw=num(d.uwQuote)-ref;
- const saveBroker=num(d.uwQuote)-num(d.brokerTarget);
- const targetLoading=(num(d.brokerTarget)/Math.max(1,ref))-1;
- return{daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,saveBroker,targetLoading};
-}
-function fmtDiff(v,type='money'){
- if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
- if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
- return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
-}
-function encodePayload(){
- const json=JSON.stringify({data,original,approval});
- return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-function decodePayload(str){
- try{
-  str=str.replace(/-/g,'+').replace(/_/g,'/');
-  while(str.length%4)str+='=';
-  return JSON.parse(decodeURIComponent(escape(atob(str))));
- }catch(e){return null}
-}
-function makeShareLink(){
- const base=location.origin+location.pathname;
- return base+'#'+encodePayload();
-}
-function saveState(){
- localStorage.setItem('gmc_rfq_last_state',JSON.stringify({data,original,approval}));
-}
-function updateHash(){
- const link=makeShareLink();
- history.replaceState(null,'',link);
- saveState();
- return link;
-}
-async function copyText(txt,msg){
- document.getElementById('linkArea').style.display='block';
- document.getElementById('shareBox').value=txt;
- try{
-  await navigator.clipboard.writeText(txt);
-  document.getElementById('status').textContent=msg+' Copied successfully.';
- }catch(e){
-  document.getElementById('status').textContent=msg+' Copy manually from the box shown below.';
-  document.getElementById('shareBox').focus();
-  document.getElementById('shareBox').select();
- }
-}
-function loadHash(){
- if(location.hash&&location.hash.length>5){
-  const obj=decodePayload(location.hash.slice(1));
-  if(obj&&obj.data){
-   data={...sample,...obj.data};
-   original={...sample,...(obj.original||obj.data)};
-   approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})};
-   document.getElementById('status').textContent='Loaded saved data from shared link.';
-   return;
-  }
- }
- document.getElementById('status').textContent='Upload Excel or click Fill manually online.';
-}
-function render(){
- const c=calc(data),o=calc(original);
-
- const banner=document.getElementById('approvalBanner');
- const box=document.getElementById('approvalBox');
- if(approval.approved){
-  const txt=`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`;
-  const sub=`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`;
-  banner.style.display='block';
-  banner.innerHTML=txt+`<span class="sub">${sub}</span>`;
-  box.innerHTML='Approval status: <b>Reviewed by HOD</b><br>'+sub;
- }else{
-  banner.style.display='none';
-  banner.innerHTML='';
-  box.textContent='Approval status: Not reviewed by HOD.';
- }
-
- const inp=document.getElementById('inputs');
- inp.innerHTML='';
- fields.forEach(([k,l,t])=>{
-  const div=document.createElement('div');
-  div.className='row inputRow';
-  let val=data[k]??'';
-  if(t==='pct')val=(num(val)*100).toString();
-  div.innerHTML=`<label>${l}</label><input id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}">`;
-  inp.appendChild(div);
-  document.getElementById('f_'+k).oninput=e=>{
-   data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
-   approval={approved:false,approvedBy:'',approvedAt:'',note:''};
-   updateHash();
-   render();
-  };
- });
-
- const outs=[
- ['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],
- ['Average lives',c.avg.toFixed(0),'outputRow'],
- ['Annualised claims',money(c.annual),'outputRow'],
- ['ICR actual',pct(c.icrAct),c.icrAct>0.95?'outputRow danger':'outputRow'],
- ['ICR annualised',pct(c.icrAnn),c.icrAnn>0.95?'outputRow danger':'outputRow'],
- ['Increased exposure',money(c.inc),'outputRow'],
- ['After IBNR load',money(c.ibnr),'outputRow'],
- ['After inflation/admin load',money(c.infl),'outputRow'],
- ['After TPA load',money(c.tpa),'outputRow'],
- ['Final REF price',money(c.ref),'outputRow blue'],
- ['Difference REF vs Broker target',money(c.diffRef),'outputRow'],
- ['Difference UW quote vs REF',money(c.saveUw),'outputRow'],
- ['Difference UW quote vs Broker target',money(c.saveBroker),'outputRow']
- ];
- document.getElementById('outputs').innerHTML=outs.map(x=>`<div class="row ${x[2]}"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
-
- document.getElementById('kRef').textContent=money(c.ref);
- document.getElementById('kRefS').textContent='Calculated final price';
- document.getElementById('kUw').textContent=money(data.uwQuote);
- document.getElementById('kUwS').textContent='Uploaded/entered UW quote';
- document.getElementById('kSave').textContent=money(c.saveUw);
- document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';
- document.getElementById('kIcr').textContent=pct(c.icrAnn);
- document.getElementById('kIcrS').textContent='Annualised claims / paid premium';
-
- document.getElementById('mRef').textContent=money(c.ref);
- document.getElementById('mUw').textContent=money(data.uwQuote);
- document.getElementById('mIcr').textContent=pct(c.icrAnn);
- document.getElementById('mTarget').textContent=(c.targetLoading*100).toFixed(1)+'%';
- document.getElementById('mSave').textContent=money(c.saveUw);
- document.getElementById('mNote').textContent=(c.saveUw>=0?'REF is below UW quote by ':'REF is above UW quote by ')+money(Math.abs(c.saveUw));
-
- const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';
- document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
-
- const im=[
- ['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],
- ['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],
- ['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],
- ['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],
- ['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')]
- ];
- document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
-
- const rows=[
- ['Paid + O/S claims',money(data.claims),'Uploaded/entered claims'],
- ['Days elapsed / exposure days',c.daysElapsed+' days','Auto: claims-as-on date minus exposure start; if renewal start is future, prior-year start is used'],
- ['Annualised claims',money(c.annual),'Claims × 365 ÷ auto days elapsed'],
- ['Exposure adjusted',money(c.inc),'Annualised × quote HC ÷ average lives'],
- ['IBNR loaded',money(c.ibnr),'Exposure adjusted ÷ (1 - IBNR%)'],
- ['Inflation/Admin loaded',money(c.infl),'IBNR loaded ÷ (1 - inflation/admin%)'],
- ['TPA loaded',money(c.tpa),'Inflation loaded ÷ (1 - TPA%)'],
- ['REF price',money(c.ref),'TPA loaded ÷ (1 - brokerage%)']
- ];
- document.getElementById('bridge').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
-}
-function importWorkbook(wb){
- const name=wb.SheetNames.includes('Parents')?'Parents':wb.SheetNames[0];
- const ws=wb.Sheets[name];
- data={
-  clientName:name,
-  policyStart:excelDate(cell(ws,'D1'))||sample.policyStart,
-  lastHeadcount:num(cell(ws,'F4')),
-  quoteHeadcount:num(cell(ws,'F5')),
-  premiumPaid:num(cell(ws,'E6')),
-  uwQuote:num(cell(ws,'E7')),
-  claimsAsOn:excelDate(cell(ws,'D8'))||sample.claimsAsOn,
-  claims:num(cell(ws,'E8')),
-  ibnrPct:num(cell(ws,'D11'),0.03),
-  inflationPct:num(cell(ws,'D12'),0.03),
-  tpaPct:num(cell(ws,'D13'),0.03),
-  brokeragePct:num(cell(ws,'D14'),0.075),
-  brokerTarget:num(cell(ws,'G14'))
- };
- original={...data};
- approval={approved:false,approvedBy:'',approvedAt:'',note:''};
- updateHash();
- render();
- document.getElementById('status').textContent='Imported sheet: '+name+'. Now review orange inputs or generate HOD link.';
- document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'});
-}
-document.getElementById('file').addEventListener('change',e=>{
- const f=e.target.files[0];
- if(!f)return;
- if(typeof XLSX==='undefined'){
-  document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';
-  return;
- }
- const r=new FileReader();
- r.onload=ev=>{
-  try{
-   const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-   importWorkbook(wb);
-  }catch(err){
-   document.getElementById('status').textContent='Import failed: '+err.message;
-  }
- };
- r.readAsArrayBuffer(f);
-});
-document.getElementById('fillManual').onclick=()=>{
- render();
- document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'});
- document.getElementById('status').textContent='Manual fields are visible below under Orange editable inputs.';
-};
-document.getElementById('verifyValues').onclick=()=>{
- const link=updateHash();
- document.getElementById('status').textContent='Values marked verified. Now click Generate HOD review link.';
- document.getElementById('linkArea').style.display='block';
- document.getElementById('shareBox').value=link;
-};
-document.getElementById('generateHod').onclick=async()=>{
- const link=updateHash();
- await copyText(link,'HOD review link generated.');
-};
-document.getElementById('copyLink').onclick=async()=>{
- const link=updateHash();
- await copyText(link,'Current share link generated.');
-};
-document.getElementById('approveHod').onclick=()=>{
- const name=prompt('HOD name / initials for approval badge','HOD')||'HOD';
- const note=prompt('Approval note','Reviewed and approved for final export')||'';
- approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note};
- render();
- const link=updateHash();
- copyText(link,'HOD approval marked and reviewed link generated.');
-};
-document.getElementById('clearApproval').onclick=()=>{
- approval={approved:false,approvedBy:'',approvedAt:'',note:''};
- render();
- updateHash();
- document.getElementById('status').textContent='HOD approval cleared.';
-};
-document.getElementById('resetBlank').onclick=()=>{
- data={clientName:'',policyStart:'',lastHeadcount:0,quoteHeadcount:0,premiumPaid:0,uwQuote:0,claimsAsOn:'',claims:0,ibnrPct:0.03,inflationPct:0.03,tpaPct:0.03,brokeragePct:0.075,brokerTarget:0};
- original={...data};
- approval={approved:false,approvedBy:'',approvedAt:'',note:''};
- render();
- updateHash();
- document.getElementById('status').textContent='Reset to blank manual entry.';
-};
-document.getElementById('resetOriginal').onclick=()=>{
- data={...original};
- approval={approved:false,approvedBy:'',approvedAt:'',note:''};
- render();
- updateHash();
- document.getElementById('status').textContent='Reset current inputs to uploaded original baseline. HOD approval cleared.';
-};
-document.getElementById('exportXlsx').onclick=()=>{
- if(typeof XLSX==='undefined'){
-  document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';
-  return;
- }
- const c=calc(data);
- const aoa=[
- ['GMC RFQ Calculator Export'],
- [],
- ['Approval status',approval.approved?'Reviewed by HOD':'Not reviewed'],
- ['Approved by',approval.approvedBy||''],
- ['Approved at',approval.approvedAt||''],
- ['Approval note',approval.note||''],
- [],
- ['Client / Policy',data.clientName],
- ['Renewal policy start date',data.policyStart],
- ['Claims as on',data.claimsAsOn],
- ['Days elapsed / exposure days',c.daysElapsed],
- [],
- ['Input','Value'],
- ['Last HC',data.lastHeadcount],
- ['Quote HC',data.quoteHeadcount],
- ['Premium paid',data.premiumPaid],
- ['UW Quote / UW premium',data.uwQuote],
- ['Claims Paid+O/S',data.claims],
- ['IBNR %',data.ibnrPct],
- ['Inflation/Admin %',data.inflationPct],
- ['TPA %',data.tpaPct],
- ['Brokerage %',data.brokeragePct],
- ['Broker target',data.brokerTarget],
- [],
- ['Output','Value'],
- ['Average lives',c.avg],
- ['Annualised claims',c.annual],
- ['ICR actual',c.icrAct],
- ['ICR annualised',c.icrAnn],
- ['Increased exposure',c.inc],
- ['After IBNR',c.ibnr],
- ['After Inflation/Admin',c.infl],
- ['After TPA',c.tpa],
- ['Final REF price',c.ref],
- ['Diff REF vs Broker target',c.diffRef],
- ['Diff UW vs REF',c.saveUw]
- ];
- const wb=XLSX.utils.book_new();
- const ws=XLSX.utils.aoa_to_sheet(aoa);
- XLSX.utils.book_append_sheet(wb,ws,'Final_Calculation');
- XLSX.writeFile(wb,`GMC_RFQ_Final_${(data.clientName||'client').replace(/[^a-z0-9]/gi,'_')}.xlsx`);
-};
-loadHash();
-render();
+function daysElapsedAuto(d=data){const renewalStart=parseLocalDate(d.policyStart),claimsDate=parseLocalDate(d.claimsAsOn);if(!renewalStart||!claimsDate)return 0;const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1)}
+function calc(d=data){const de=daysElapsedAuto(d),avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2,annual=num(d.claims)*365/Math.max(1,de),icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid)),icrAnn=annual/Math.max(1,num(d.premiumPaid)),inc=annual*num(d.quoteHeadcount)/Math.max(1,avg),ibnr=inc/(1-num(d.ibnrPct)),infl=ibnr/(1-num(d.inflationPct)),tpa=infl/(1-num(d.tpaPct)),ref=tpa/(1-num(d.brokeragePct)),diffRef=ref-num(d.brokerTarget),saveUw=num(d.uwQuote)-ref,saveBroker=num(d.uwQuote)-num(d.brokerTarget),targetLoading=(num(d.brokerTarget)/Math.max(1,ref))-1;return{daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,saveBroker,targetLoading}}
+function fmtDiff(v,type='money'){if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`}
+function encodePayload(){const json=JSON.stringify({data,original,approval});return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function decodePayload(str){try{str=str.replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';return JSON.parse(decodeURIComponent(escape(atob(str))))}catch(e){return null}}
+function makeShareLink(){return location.origin+location.pathname+'#'+encodePayload()}
+function saveState(){localStorage.setItem('gmc_rfq_last_state',JSON.stringify({data,original,approval}))}
+function updateHash(){const link=makeShareLink();history.replaceState(null,'',link);saveState();return link}
+async function copyText(txt,msg){document.getElementById('linkArea').style.display='block';document.getElementById('shareBox').value=txt;try{await navigator.clipboard.writeText(txt);document.getElementById('status').textContent=msg+' Copied successfully.'}catch(e){document.getElementById('status').textContent=msg+' Copy manually from the box shown below.';document.getElementById('shareBox').focus();document.getElementById('shareBox').select()}}
+function loadHash(){if(location.hash&&location.hash.length>5){const obj=decodePayload(location.hash.slice(1));if(obj&&obj.data){data={...sample,...obj.data};original={...sample,...(obj.original||obj.data)};approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})};document.getElementById('status').textContent='Loaded saved data from shared link.';return}}document.getElementById('status').textContent='Upload Excel or click Fill manually online.'}
+function render(){const c=calc(data),o=calc(original);const banner=document.getElementById('approvalBanner'),box=document.getElementById('approvalBox');if(approval.approved){const txt=`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`,sub=`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`;banner.style.display='block';banner.innerHTML=txt+`<span class="sub">${sub}</span>`;box.innerHTML='Approval status: <b>Reviewed by HOD</b><br>'+sub}else{banner.style.display='none';banner.innerHTML='';box.textContent='Approval status: Not reviewed by HOD.'}
+const inp=document.getElementById('inputs');inp.innerHTML='';fields.forEach(([k,l,t])=>{const div=document.createElement('div');div.className='row inputRow';let val=data[k]??'';if(t==='pct')val=(num(val)*100).toString();div.innerHTML=`<label>${l}</label><input id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}">`;inp.appendChild(div);document.getElementById('f_'+k).oninput=e=>{data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);approval={approved:false,approvedBy:'',approvedAt:'',note:''};updateHash();render()}});
+const outs=[['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],['Average lives',c.avg.toFixed(0),'outputRow'],['Annualised claims',money(c.annual),'outputRow'],['ICR actual',pct(c.icrAct),c.icrAct>0.95?'outputRow danger':'outputRow'],['ICR annualised',pct(c.icrAnn),c.icrAnn>0.95?'outputRow danger':'outputRow'],['Increased exposure',money(c.inc),'outputRow'],['After IBNR load',money(c.ibnr),'outputRow'],['After inflation/admin load',money(c.infl),'outputRow'],['After TPA load',money(c.tpa),'outputRow'],['Final REF price',money(c.ref),'outputRow blue'],['Difference REF vs Broker target',money(c.diffRef),'outputRow'],['Difference UW quote vs REF',money(c.saveUw),'outputRow'],['Difference UW quote vs Broker target',money(c.saveBroker),'outputRow']];
+document.getElementById('outputs').innerHTML=outs.map(x=>`<div class="row ${x[2]}"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
+document.getElementById('kRef').textContent=money(c.ref);document.getElementById('kRefS').textContent='Calculated final price';document.getElementById('kUw').textContent=money(data.uwQuote);document.getElementById('kUwS').textContent='Uploaded/entered UW quote';document.getElementById('kSave').textContent=money(c.saveUw);document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';document.getElementById('kIcr').textContent=pct(c.icrAnn);document.getElementById('kIcrS').textContent='Annualised claims / paid premium';document.getElementById('mRef').textContent=money(c.ref);document.getElementById('mUw').textContent=money(data.uwQuote);document.getElementById('mIcr').textContent=pct(c.icrAnn);document.getElementById('mTarget').textContent=(c.targetLoading*100).toFixed(1)+'%';document.getElementById('mSave').textContent=money(c.saveUw);document.getElementById('mNote').textContent=(c.saveUw>=0?'REF is below UW quote by ':'REF is above UW quote by ')+money(Math.abs(c.saveUw));const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
+const im=[['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')]];
+document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+const rows=[['Paid + O/S claims',money(data.claims),'Uploaded/entered claims'],['Days elapsed / exposure days',c.daysElapsed+' days','Auto: claims-as-on date minus exposure start; if renewal start is future, prior-year start is used'],['Annualised claims',money(c.annual),'Claims × 365 ÷ auto days elapsed'],['Exposure adjusted',money(c.inc),'Annualised × quote HC ÷ average lives'],['IBNR loaded',money(c.ibnr),'Exposure adjusted ÷ (1 - IBNR%)'],['Inflation/Admin loaded',money(c.infl),'IBNR loaded ÷ (1 - inflation/admin%)'],['TPA loaded',money(c.tpa),'Inflation loaded ÷ (1 - TPA%)'],['REF price',money(c.ref),'TPA loaded ÷ (1 - brokerage%)']];
+document.getElementById('bridge').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}
+function importWorkbook(wb){const name=wb.SheetNames.includes('Parents')?'Parents':wb.SheetNames[0],ws=wb.Sheets[name];data={clientName:name,policyStart:excelDate(cell(ws,'D1'))||sample.policyStart,lastHeadcount:num(cell(ws,'F4')),quoteHeadcount:num(cell(ws,'F5')),premiumPaid:num(cell(ws,'E6')),uwQuote:num(cell(ws,'E7')),claimsAsOn:excelDate(cell(ws,'D8'))||sample.claimsAsOn,claims:num(cell(ws,'E8')),ibnrPct:num(cell(ws,'D11'),0.03),inflationPct:num(cell(ws,'D12'),0.03),tpaPct:num(cell(ws,'D13'),0.03),brokeragePct:num(cell(ws,'D14'),0.075),brokerTarget:num(cell(ws,'G14'))};original={...data};approval={approved:false,approvedBy:'',approvedAt:'',note:''};updateHash();render();document.getElementById('status').textContent='Imported sheet: '+name+'. Now review orange inputs or generate HOD link.';document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'})}
+function excelSerialFromDate(dateStr){if(!dateStr)return "";const d=new Date(dateStr+"T00:00:00");return Math.round((d-new Date("1899-12-30T00:00:00"))/86400000)}
+document.getElementById('file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(typeof XLSX==='undefined'){document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';return}const r=new FileReader();r.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});importWorkbook(wb)}catch(err){document.getElementById('status').textContent='Import failed: '+err.message}};r.readAsArrayBuffer(f)});
+document.getElementById('fillManual').onclick=()=>{render();document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'});document.getElementById('status').textContent='Manual fields are visible below under Orange editable inputs.'};
+document.getElementById('verifyValues').onclick=()=>{const link=updateHash();document.getElementById('status').textContent='Values marked verified. Now click Generate HOD review link.';document.getElementById('linkArea').style.display='block';document.getElementById('shareBox').value=link};
+document.getElementById('generateHod').onclick=async()=>{const link=updateHash();await copyText(link,'HOD review link generated.')};
+document.getElementById('copyLink').onclick=async()=>{const link=updateHash();await copyText(link,'Current share link generated.')};
+document.getElementById('approveHod').onclick=()=>{const name=prompt('HOD name / initials for approval badge','HOD')||'HOD',note=prompt('Approval note','Reviewed and approved for final export')||'';approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note};render();const link=updateHash();copyText(link,'HOD approval marked and reviewed link generated.')};
+document.getElementById('clearApproval').onclick=()=>{approval={approved:false,approvedBy:'',approvedAt:'',note:''};render();updateHash();document.getElementById('status').textContent='HOD approval cleared.'};
+document.getElementById('resetBlank').onclick=()=>{data={clientName:'',policyStart:'',lastHeadcount:0,quoteHeadcount:0,premiumPaid:0,uwQuote:0,claimsAsOn:'',claims:0,ibnrPct:0.03,inflationPct:0.03,tpaPct:0.03,brokeragePct:0.075,brokerTarget:0};original={...data};approval={approved:false,approvedBy:'',approvedAt:'',note:''};render();updateHash();document.getElementById('status').textContent='Reset to blank manual entry.'};
+document.getElementById('resetOriginal').onclick=()=>{data={...original};approval={approved:false,approvedBy:'',approvedAt:'',note:''};render();updateHash();document.getElementById('status').textContent='Reset current inputs to uploaded original baseline. HOD approval cleared.'};
+document.getElementById('exportXlsx').onclick=()=>{if(typeof XLSX==='undefined'){document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';return}const c=calc(data);const aoa=[[null,null,'Policy Start date',excelSerialFromDate(data.policyStart),null,data.quoteHeadcount,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,'Employee','Dependent','Total','AVG Lives',null,null],[null,null,'Last year inception headcount',null,null,data.lastHeadcount,{f:'AVERAGE(F4,F5)',v:c.avg},null,null],[null,null,'Quote headcount ',null,null,data.quoteHeadcount,null,null,null],[null,null,'Premium paid till date in expiry policy',null,data.premiumPaid,null,null,null,null],[null,null,'Underwriting Quote ',null,data.uwQuote,null,null,null,null],[null,null,'Claims As on (Paid+O/S)',excelSerialFromDate(data.claimsAsOn),data.claims,null,{f:'E8/E6',v:c.icrAct},null,null],[null,null,'Annualised Claims',null,{f:'E8*365/'+c.daysElapsed,v:c.annual},null,{f:'E9/E6',v:c.icrAnn},null,null],[null,null,'Increased Exposure',null,{f:'E9*F5/G4',v:c.inc},null,null,null,null],[null,null,'Load for IBNR',data.ibnrPct,{f:'E10/(1-D11)',v:c.ibnr},null,null,null,null],[null,null,'Loading others(inflation, Admin)',data.inflationPct,{f:'E11/(1-D12)',v:c.infl},null,null,null,null],[null,null,'TPA External/ internal',data.tpaPct,{f:'E12/(1-D13)',v:c.tpa},null,'Broker target @7.5%','difference from REF','Difference from UW'],[null,null,'Brokerage',data.brokeragePct,{f:'E13/(1-D14)',v:c.ref},null,data.brokerTarget,{f:'G14-E14',v:data.brokerTarget-c.ref},{f:'E7-G14',v:data.uwQuote-data.brokerTarget}],[null,null,'Difference ref vs UW Quote',null,{f:'E7-E14',v:data.uwQuote-c.ref},null,null,null,null],[],[null,null,'Approval status',approval.approved?'Reviewed by HOD':'Not reviewed'],[null,null,'Approved by',approval.approvedBy||''],[null,null,'Approved at',approval.approvedAt||''],[null,null,'Approval note',approval.note||'']];const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[{wch:4},{wch:4},{wch:34},{wch:14},{wch:16},{wch:12},{wch:16},{wch:18},{wch:18}];['D1','D8'].forEach(a=>{if(ws[a])ws[a].z='dd-mmm-yy'});['D11','D12','D13','D14','G8','G9'].forEach(a=>{if(ws[a])ws[a].z='0.00%'});['E6','E7','E8','E9','E10','E11','E12','E13','E14','E15','G14','H14','I14'].forEach(a=>{if(ws[a])ws[a].z='#,##0'});XLSX.utils.book_append_sheet(wb,ws,'Final_Calculation');XLSX.writeFile(wb,`GMC_REF_Final_${(data.clientName||'client').replace(/[^a-z0-9]/gi,'_')}.xlsx`)};
+loadHash();render();
 </script>
 </body>
 </html>
