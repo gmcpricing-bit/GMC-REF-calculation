@@ -1,31 +1,33 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GMC RFQ Calculator</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#dde3ee;--orange:#fff3df;--green:#e9f8ef;--red:#fdecec;--blue:#eaf2ff;--shadow:0 10px 28px rgba(17,24,39,.08)}
 *{box-sizing:border-box}
-body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:150px}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:96px}
 header{padding:18px 16px;background:#101828;color:#fff;position:sticky;top:0;z-index:5;box-shadow:var(--shadow)}
 header h1{margin:0;font-size:20px}
-header p{margin:6px 0 0;color:#cbd5e1;font-size:13px}
-main{max-width:1120px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
-.card h2{font-size:17px;margin:0 0 12px}
+header p{margin:5px 0 0;color:#cbd5e1;font-size:13px}
+main{max-width:1120px;margin:auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h2{font-size:16px;margin:0 0 12px}
 .grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
-.row{display:grid;grid-template-columns:1fr 145px;gap:8px;align-items:center;border-bottom:1px solid #eef2f7;padding:9px 0}
+.row{display:grid;grid-template-columns:1fr 160px;gap:8px;align-items:center;border-bottom:1px solid #eef2f7;padding:8px 0}
 .row:last-child{border-bottom:0}
 label{font-size:13px;color:#344054}
-input{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:14px;text-align:right}
+input,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;font-size:14px}
+input{text-align:right}
 input[type=date],input[type=text]{text-align:left}
+textarea{height:72px;font-size:12px}
 .inputRow{background:var(--orange);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:10px}
 .outputRow{background:var(--green);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:10px}
-.blue{background:var(--blue)!important}
 .danger{background:var(--red)!important}
+.blue{background:var(--blue)!important}
 .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
 .kpi{padding:12px;border-radius:15px;border:1px solid var(--line);background:#fff}
@@ -45,1098 +47,481 @@ table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:9px;border-bottom:1px solid #eef2f7;text-align:right}
 th:first-child,td:first-child{text-align:left}
 th{color:#475467;background:#f8fafc}
-.hidden{display:none}
-.collapsedBox{display:none}
-.showBox{display:block}
-.pos{color:#067647;font-weight:700}
-.neg{color:#b42318;font-weight:700}
-.readonlyInput{background:#f8fafc!important;color:#667085}
-.approvalBanner{display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid #75e0a7;background:#ecfdf3;color:#05603a;font-weight:800}
-.approvalBanner .sub{display:block;font-size:12px;font-weight:600;color:#067647;margin-top:3px}
-.tamperBanner{display:block!important;border-color:#f04438!important;background:#fef3f2!important;color:#b42318!important}
-.tamperBanner .sub{color:#b42318!important}
-.approvalBox{border:1px dashed #98a2b3;background:#f8fafc;border-radius:14px;padding:10px;margin-top:8px}
-.modeBanner{border:1px solid #b2ccff;background:#eff6ff;color:#1849a9;border-radius:14px;padding:10px;margin:10px 0;font-weight:700}
-.verifyGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media(min-width:800px){.verifyGrid{grid-template-columns:repeat(4,1fr)}}
-.verifyItem{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
-.verifyItem .t{font-size:11px;color:var(--muted)}
-.verifyItem .v{font-weight:800;margin-top:4px}
-.stickyResult{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#101828;color:#fff;padding:10px 14px;box-shadow:0 -8px 24px rgba(16,24,40,.18);display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stickyResult div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px}
-.stickyResult .t{font-size:11px;color:#cbd5e1}
-.stickyResult .v{font-size:17px;font-weight:800;margin-top:2px}
-.stickyResult .full{grid-column:1/-1;font-size:11px;color:#cbd5e1}
-@media(min-width:900px){.stickyResult{left:50%;transform:translateX(-50%);max-width:1050px;border-radius:18px 18px 0 0;grid-template-columns:repeat(5,1fr)}.stickyResult .full{grid-column:auto}}
-</style>
-</head>
-
-<body>
-<header>
-  <h1>GMC RFQ Calculator</h1>
-  <p>Upload Excel / fill manually → verify values → generate HOD link → HOD edits % fields → approval / export</p>
-</header>
-
-<div class="stickyResult">
-  <div><span class="t">Final REF price</span><div class="v" id="mRef">-</div></div>
-  <div><span class="t">UW premium</span><div class="v" id="mUw">-</div></div>
-  <div><span class="t">ICR annualised</span><div class="v" id="mIcr">-</div></div>
-  <div><span class="t">Target loading</span><div class="v" id="mReqLoad">-</div></div>
-  <div><span class="t">UW vs REF saving</span><div class="v" id="mSave">-</div></div>
-  <div class="full" id="mNote">Live result stays visible while HOD edits % inputs.</div>
-</div>
-
-<main>
-  <div id="approvalBanner" class="approvalBanner"></div>
-
-  <div class="card">
-    <h2>1) Upload / fill / verify / share</h2>
-    <div id="modeBanner" class="modeBanner hidden"></div>
-
-    <input id="file" type="file" accept=".xlsx,.xls" style="text-align:left" />
-
-    <div class="bar">
-      <button id="manualEntry" class="ghost">Fill manually online</button>
-      <button id="verifyData" class="ghost">Mark values verified</button>
-      <button id="hodLink">Generate HOD review link</button>
-      <button id="copyLink" class="ghost">Copy current link</button>
-      <button class="secondary" id="exportXlsx">Export final Excel</button>
-      <button class="ghost" id="approveHod">Final approval by HOD</button>
-      <button class="ghost" id="clearApproval">Clear approval</button>
-      <button class="ghost" id="resetBlank">Reset blank</button>
-      <button class="ghost" id="resetOriginal">Reset to uploaded original</button>
-    </div>
-
-    <div id="verifyPanel" class="verifyGrid"></div>
-    <div id="status" class="note">Upload Excel or click Fill manually online.</div>
-    <div id="approvalBox" class="approvalBox note">Approval status: Not reviewed by HOD.</div>
-    <div class="note">Data is stored inside the URL after #. After every edit/approval, click Generate HOD review link or Copy current link again.</div>
-  </div>
-
-  <section class="card">
-    <h2>Live result</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">REF price</div><div class="v" id="kRef">-</div><div class="s">Calculated final price</div></div>
-      <div class="kpi"><div class="t">UW quote</div><div class="v" id="kUw">-</div><div class="s">Uploaded / entered UW quote</div></div>
-      <div class="kpi"><div class="t">UW quote saving</div><div class="v" id="kSave">-</div><div class="s" id="kSaveS">-</div></div>
-      <div class="kpi"><div class="t">ICR annualised</div><div class="v" id="kIcr">-</div><div class="s">Annualised claims / paid premium</div></div>
-      <div class="kpi"><div class="t">Loading needed for broker target</div><div class="v" id="kReqLoad">-</div><div class="s" id="kReqLoadS">-</div></div>
-    </div>
-    <div id="badge" style="margin-top:12px"></div>
-  </section>
-
-  <section class="card blue">
-    <h2>Suggested loading to match broker target</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">Current total loading before brokerage</div><div class="v" id="sCurrentLoad">-</div><div class="s">IBNR + inflation/admin + TPA compounded</div></div>
-      <div class="kpi"><div class="t">Required total loading</div><div class="v" id="sReqLoad">-</div><div class="s">To exactly match broker target</div></div>
-      <div class="kpi"><div class="t">Suggested change</div><div class="v" id="sGapLoad">-</div><div class="s" id="sGapText">-</div></div>
-      <div class="kpi"><div class="t">Current vs target price</div><div class="v" id="sPriceGap">-</div><div class="s">Final REF minus broker target</div></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>HOD change impact on same screen</h2>
-    <table>
-      <thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
-      <tbody id="impact"></tbody>
-    </table>
-  </section>
-
-  <div class="grid">
-    <section class="card">
-      <h2 id="inputTitle">2) Inputs</h2>
-      <div class="note" id="inputNote">Maker can upload Excel or fill manually. HOD sees only % fields by default.</div>
-      <div class="bar"><button class="ghost" id="toggleAllInputs">View / hide uploaded source inputs</button></div>
-      <div id="pctInputs"></div>
-      <div id="sourceInputs" class="showBox"></div>
-    </section>
-
-    <section class="card">
-      <h2>3) Auto-calculated outputs</h2>
-      <div id="outputs"></div>
-    </section>
-  </div>
-
-  <section class="card">
-    <h2>Calculation bridge</h2>
-    <table>
-      <thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
-      <tbody id="bridge"></tbody>
-    </table>
-  </section>
-</main>
-
-<script>
-const blank={
-  clientName:'',
-  policyStart:'',
-  lastHeadcount:'',
-  quoteHeadcount:'',
-  premiumPaid:'',
-  uwQuote:'',
-  claimsAsOn:'',
-  claims:'',
-  ibnrPct:0.03,
-  inflationPct:0.03,
-  tpaPct:0.03,
-  brokeragePct:0.075,
-  brokerTarget:''
-};
-
-let data={...blank};
-let original={...blank};
-let approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:''};
-let verified=false;
-let viewMode='maker';
-let showAllInputs=true;
-
-const fields=[
-  ['clientName','Client / Policy name','text'],
-  ['policyStart','Renewal policy start date','date'],
-  ['lastHeadcount','Last year inception headcount','number'],
-  ['quoteHeadcount','Quote headcount','number'],
-  ['premiumPaid','Premium paid till date in expiry policy','number'],
-  ['uwQuote','Underwriting quote','number'],
-  ['claimsAsOn','Claims as on date','date'],
-  ['claims','Claims as on (Paid + O/S)','number'],
-  ['ibnrPct','IBNR loading %','pct'],
-  ['inflationPct','Inflation/Admin loading %','pct'],
-  ['tpaPct','TPA loading %','pct'],
-  ['brokeragePct','Brokerage %','pct'],
-  ['brokerTarget','Broker target price','number']
-];
-
-const pctKeys=new Set(['ibnrPct','inflationPct','tpaPct','brokeragePct']);
-
-function cell(ws,addr){const c=ws[addr];return c?c.v:null}
-
-function excelDate(v){
-  if(!v)return '';
-  if(v instanceof Date)return v.toISOString().slice(0,10);
-  if(typeof v==='number'){
-    const d=XLSX.SSF.parse_date_code(v);
-    if(!d)return '';
-    return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-  }
-  const d=new Date(v);
-  return isNaN(d)?'':d.toISOString().slice(0,10);
-}
-
-function num(v,d=0){
-  let n=Number(String(v??'').replace(/,/g,''));
-  return isFinite(n)?n:d;
-}
-
-function money(n){
-  n=num(n);
-  if(!n)return '-';
-  const a=Math.abs(n),s=n<0?'-':'';
-  if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
-  if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
-  return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
-}
-
-function pct(n){
-  if(!isFinite(num(n)))return '-';
-  return (num(n)*100).toFixed(1)+'%';
-}
-
-function parseLocalDate(s){
-  if(!s)return null;
-  const [y,m,d]=String(s).slice(0,10).split('-').map(Number);
-  if(!y||!m||!d)return null;
-  return new Date(y,m-1,d);
-}
-
-function addYears(dt,yrs){
-  const d=new Date(dt);
-  d.setFullYear(d.getFullYear()+yrs);
-  return d;
-}
-
-function daysElapsedAuto(d=data){
-  const renewalStart=parseLocalDate(d.policyStart),claimsDate=parseLocalDate(d.claimsAsOn);
-  if(!renewalStart||!claimsDate)return 0;
-  const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
-  return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
-}
-
-function calc(d=data){
-  const de=daysElapsedAuto(d);
-  const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
-  const annual=de?num(d.claims)*365/de:0;
-  const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
-  const icrAnn=annual/Math.max(1,num(d.premiumPaid));
-  const inc=avg?annual*num(d.quoteHeadcount)/avg:0;
-  const ibnr=inc/(1-num(d.ibnrPct));
-  const infl=ibnr/(1-num(d.inflationPct));
-  const tpa=infl/(1-num(d.tpaPct));
-  const ref=tpa/(1-num(d.brokeragePct));
-  const diffRef=ref-num(d.brokerTarget);
-  const saveUw=num(d.uwQuote)-ref;
-  const targetBeforeBroker=num(d.brokerTarget)*(1-num(d.brokeragePct));
-  const reqLoadToTarget=inc?targetBeforeBroker/inc-1:0;
-  const currentCombinedLoad=inc?tpa/inc-1:0;
-  const loadGapToTarget=reqLoadToTarget-currentCombinedLoad;
-  return {daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,targetBeforeBroker,reqLoadToTarget,currentCombinedLoad,loadGapToTarget};
-}
-
-function approvalDataOnly(d=data){
-  const obj={};
-  fields.forEach(([k])=>obj[k]=d[k]);
-  return obj;
-}
-
-function dataSig(d=data){return JSON.stringify(approvalDataOnly(d));}
-function isChangedAfterApproval(){return !!(approval.approved&&approval.dataSig&&approval.dataSig!==dataSig(data));}
-
-function fmtDiff(v,type='money'){
-  if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
-  if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
-  return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
-}
-
-function updateHash(){
-  try{
-    location.hash=btoa(unescape(encodeURIComponent(JSON.stringify({data,original,approval,verified,viewMode}))));
-  }catch(e){}
-}
-
-function loadHash(){
-  if(location.hash.length>5){
-    try{
-      const obj=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
-      data={...blank,...obj.data};
-      original={...blank,...(obj.original||obj.data)};
-      approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:'',...(obj.approval||{})};
-      verified=!!obj.verified;
-      viewMode=obj.viewMode||'maker';
-      showAllInputs=viewMode!=='hod';
-      document.getElementById('status').textContent='Loaded shared URL data.';
-    }catch(e){}
-  }
-}
-
-function render(){
-  const c=calc(data),o=calc(original);
-  const changed=isChangedAfterApproval();
-  const banner=document.getElementById('approvalBanner');
-  const box=document.getElementById('approvalBox');
-
-  if(approval.approved){
-    banner.style.display='block';
-    banner.className='approvalBanner'+(changed?' tamperBanner':'');
-    banner.innerHTML=(changed?'⚠️ Numbers changed after HOD approval — review required again':`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`)+
-    `<span class="sub">${changed?'Earlier approval no longer matches current figures.':`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`}</span>`;
-    box.innerHTML=changed?'Approval status: <b style="color:#b42318">Changed after HOD approval - review again</b>':`Approval status: <b>Reviewed by HOD</b><br>${approval.approvedAt}`;
-  }else{
-    banner.style.display='none';
-    box.textContent='Approval status: Not reviewed by HOD.';
-  }
-
-  const mode=document.getElementById('modeBanner');
-  mode.className=viewMode==='hod'?'modeBanner':'modeBanner hidden';
-  mode.textContent='HOD review mode: only % loading fields are editable by default.';
-
-  document.getElementById('inputTitle').textContent=viewMode==='hod'?'2) HOD editable % inputs':'2) Maker / manual input fields';
-  document.getElementById('sourceInputs').className=(showAllInputs||viewMode!=='hod')?'showBox':'collapsedBox';
-
-  const pctBox=document.getElementById('pctInputs'),srcBox=document.getElementById('sourceInputs');
-  pctBox.innerHTML='';
-  srcBox.innerHTML='';
-
-  fields.forEach(([k,l,t])=>{
-    const div=document.createElement('div');
-    div.className='row '+(pctKeys.has(k)?'inputRow':'outputRow');
-    let val=data[k]??'';
-    if(t==='pct')val=(num(val)*100).toString();
-    const editable=viewMode!=='hod'||pctKeys.has(k);
-    div.innerHTML=`<label>${l}</label><input class="${editable?'':'readonlyInput'}" id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}" ${editable?'':'readonly'}>`;
-    (pctKeys.has(k)?pctBox:srcBox).appendChild(div);
-
-    document.getElementById('f_'+k).onchange=e=>{
-      if(!editable)return;
-      data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
-      updateHash();
-      render();
-    };
-  });
-
-  const quick=[
-    ['Client',data.clientName],['Policy start',data.policyStart],['Quote HC',data.quoteHeadcount],
-    ['Premium paid',money(data.premiumPaid)],['UW quote',money(data.uwQuote)],
-    ['Claims date',data.claimsAsOn],['Claims',money(data.claims)],['Broker target',money(data.brokerTarget)]
-  ];
-  document.getElementById('verifyPanel').innerHTML=quick.map(x=>`<div class="verifyItem"><div class="t">${x[0]}</div><div class="v">${x[1]||'-'}</div></div>`).join('');
-
-  document.getElementById('kRef').textContent=money(c.ref);
-  document.getElementById('kUw').textContent=money(data.uwQuote);
-  document.getElementById('kSave').textContent=money(c.saveUw);
-  document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';
-  document.getElementById('kIcr').textContent=pct(c.icrAnn);
-  document.getElementById('kReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('kReqLoadS').textContent=(c.loadGapToTarget>=0?'Can add ':'Need reduce ')+pct(Math.abs(c.loadGapToTarget));
-
-  document.getElementById('mRef').textContent=money(c.ref);
-  document.getElementById('mUw').textContent=money(data.uwQuote);
-  document.getElementById('mIcr').textContent=pct(c.icrAnn);
-  document.getElementById('mReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('mSave').textContent=money(c.saveUw);
-  document.getElementById('mNote').textContent=(changed?'⚠️ Changed after HOD approval - review again. ':'')+(c.loadGapToTarget<0?'Suggested: reduce total loading by ':'Suggested: total loading headroom ')+pct(Math.abs(c.loadGapToTarget));
-
-  document.getElementById('sCurrentLoad').textContent=pct(c.currentCombinedLoad);
-  document.getElementById('sReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('sGapLoad').textContent=(c.loadGapToTarget>=0?'+':'-')+pct(Math.abs(c.loadGapToTarget));
-  document.getElementById('sGapText').textContent=c.loadGapToTarget>=0?'Current REF is below target; loading can increase if required.':'Current REF is above target; reduce combined loading to match broker target.';
-  document.getElementById('sPriceGap').textContent=money(c.diffRef);
-
-  const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';
-  document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
-
-  const im=[
-    ['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],
-    ['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],
-    ['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],
-    ['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],
-    ['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')],
-    ['Loading needed for broker target',pct(o.reqLoadToTarget),pct(c.reqLoadToTarget),fmtDiff(c.reqLoadToTarget-o.reqLoadToTarget,'pct')]
-  ];
-  document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
-
-  const outs=[
-    ['Days elapsed / exposure days',c.daysElapsed+'.ghost{background:#fff;color:#175cd3;border:1px solid #b2ccff}
-.warn{background:#b42318}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.note{font-size:12px;color:var(--muted);line-height:1.45}
-.pill{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700}
-.ok{background:#dcfae6;color:#067647}
-.bad{background:#fee4e2;color:#b42318}
-.mid{background:#fef0c7;color:#b54708}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:9px;border-bottom:1px solid #eef2f7;text-align:right}
-th:first-child,td:first-child{text-align:left}
-th{color:#475467;background:#f8fafc}
-.hidden{display:none}
-.collapsedBox{display:none}
-.showBox{display:block}
-.pos{color:#067647;font-weight:700}
-.neg{color:#b42318;font-weight:700}
-.readonlyInput{background:#f8fafc!important;color:#667085}
-.approvalBanner{display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid #75e0a7;background:#ecfdf3;color:#05603a;font-weight:800}
-.approvalBanner .sub{display:block;font-size:12px;font-weight:600;color:#067647;margin-top:3px}
-.tamperBanner{display:block!important;border-color:#f04438!important;background:#fef3f2!important;color:#b42318!important}
-.tamperBanner .sub{color:#b42318!important}
-.approvalBox{border:1px dashed #98a2b3;background:#f8fafc;border-radius:14px;padding:10px;margin-top:8px}
-.modeBanner{border:1px solid #b2ccff;background:#eff6ff;color:#1849a9;border-radius:14px;padding:10px;margin:10px 0;font-weight:700}
-.verifyGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media(min-width:800px){.verifyGrid{grid-template-columns:repeat(4,1fr)}}
-.verifyItem{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
-.verifyItem .t{font-size:11px;color:var(--muted)}
-.verifyItem .v{font-weight:800;margin-top:4px}
-.stickyResult{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#101828;color:#fff;padding:10px 14px;box-shadow:0 -8px 24px rgba(16,24,40,.18);display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stickyResult div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px}
-.stickyResult .t{font-size:11px;color:#cbd5e1}
-.stickyResult .v{font-size:17px;font-weight:800;margin-top:2px}
-.stickyResult .full{grid-column:1/-1;font-size:11px;color:#cbd5e1}
-@media(min-width:900px){.stickyResult{left:50%;transform:translateX(-50%);max-width:1050px;border-radius:18px 18px 0 0;grid-template-columns:repeat(5,1fr)}.stickyResult .full{grid-column:auto}}
-</style>
-</head>
-<body>
-
-<header>
-  <h1>GMC RFQ Calculator</h1>
-  <p>Upload Excel / fill manually → verify values → generate HOD link → HOD edits % fields → approval / export</p>
-</header>
-
-<div class="stickyResult">
-  <div><span class="t">Final REF price</span><div class="v" id="mRef">-</div></div>
-  <div><span class="t">UW premium</span><div class="v" id="mUw">-</div></div>
-  <div><span class="t">ICR annualised</span><div class="v" id="mIcr">-</div></div>
-  <div><span class="t">Target loading</span><div class="v" id="mReqLoad">-</div></div>
-  <div><span class="t">UW vs REF saving</span><div class="v" id="mSave">-</div></div>
-  <div class="full" id="mNote">Live result stays visible while HOD edits % inputs.</div>
-</div>
-
-<main>
-  <div id="approvalBanner" class="approvalBanner"></div>
-
-  <div class="card">
-    <h2>1) Upload / fill / verify / share</h2>
-    <div id="modeBanner" class="modeBanner hidden"></div>
-    <input id="file" type="file" accept=".xlsx,.xls" style="text-align:left" />
-
-    <div class="bar">
-      <button id="manualEntry" class="ghost">Fill manually online</button>
-      <button id="verifyData" class="ghost">Mark uploaded values verified</button>
-      <button id="hodLink">Generate HOD review link</button>
-      <button id="copyLink" class="ghost">Copy current link</button>
-      <button class="secondary" id="exportXlsx">Export final Excel</button>
-      <button class="ghost" id="approveHod">Final approval by HOD</button>
-      <button class="ghost" id="clearApproval">Clear approval</button>
-      <button class="ghost" id="resetBlank">Reset blank</button>
-      <button class="ghost" id="resetOriginal">Reset to uploaded original</button>
-    </div>
-
-    <div id="verifyPanel" class="verifyGrid"></div>
-    <div id="status" class="note">Upload Excel or click Fill manually online.</div>
-    <div id="approvalBox" class="approvalBox note">Approval status: Not reviewed by HOD.</div>
-    <div class="note">Data is stored inside the URL after #. After every edit/approval, click Generate HOD review link or Copy current link again.</div>
-  </div>
-
-  <section class="card">
-    <h2>Live result</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">REF price</div><div class="v" id="kRef">-</div><div class="s">Calculated final price</div></div>
-      <div class="kpi"><div class="t">UW quote</div><div class="v" id="kUw">-</div><div class="s">Uploaded / entered UW quote</div></div>
-      <div class="kpi"><div class="t">UW quote saving</div><div class="v" id="kSave">-</div><div class="s" id="kSaveS">-</div></div>
-      <div class="kpi"><div class="t">ICR annualised</div><div class="v" id="kIcr">-</div><div class="s">Annualised claims / paid premium</div></div>
-      <div class="kpi"><div class="t">Loading needed for broker target</div><div class="v" id="kReqLoad">-</div><div class="s" id="kReqLoadS">-</div></div>
-    </div>
-    <div id="badge" style="margin-top:12px"></div>
-  </section>
-
-  <section class="card blue">
-    <h2>Suggested loading to match broker target</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">Current total loading before brokerage</div><div class="v" id="sCurrentLoad">-</div><div class="s">IBNR + inflation/admin + TPA compounded</div></div>
-      <div class="kpi"><div class="t">Required total loading</div><div class="v" id="sReqLoad">-</div><div class="s">To exactly match broker target</div></div>
-      <div class="kpi"><div class="t">Suggested change</div><div class="v" id="sGapLoad">-</div><div class="s" id="sGapText">-</div></div>
-      <div class="kpi"><div class="t">Current vs target price</div><div class="v" id="sPriceGap">-</div><div class="s">Final REF minus broker target</div></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>HOD change impact on same screen</h2>
-    <table>
-      <thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
-      <tbody id="impact"></tbody>
-    </table>
-  </section>
-
-  <div class="grid">
-    <section class="card">
-      <h2 id="inputTitle">2) Inputs</h2>
-      <div class="note" id="inputNote">Maker can upload Excel or fill manually. HOD sees only % fields by default.</div>
-      <div class="bar"><button class="ghost" id="toggleAllInputs">View / hide uploaded source inputs</button></div>
-      <div id="pctInputs"></div>
-      <div id="sourceInputs" class="showBox"></div>
-    </section>
-
-    <section class="card">
-      <h2>3) Auto-calculated outputs</h2>
-      <div id="outputs"></div>
-    </section>
-  </div>
-
-  <section class="card">
-    <h2>Calculation bridge</h2>
-    <table>
-      <thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
-      <tbody id="bridge"></tbody>
-    </table>
-  </section>
-</main>
-
-<script>
-const blank={
-  clientName:'',
-  policyStart:'',
-  lastHeadcount:'',
-  quoteHeadcount:'',
-  premiumPaid:'',
-  uwQuote:'',
-  claimsAsOn:'',
-  claims:'',
-  ibnrPct:0.03,
-  inflationPct:0.03,
-  tpaPct:0.03,
-  brokeragePct:0.075,
-  brokerTarget:''
-};
-
-let data={...blank};
-let original={...blank};
-let approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:''};
-let verified=false;
-let viewMode='maker';
-let showAllInputs=true;
-
-const fields=[
-  ['clientName','Client / Policy name','text'],
-  ['policyStart','Renewal policy start date','date'],
-  ['lastHeadcount','Last year inception headcount','number'],
-  ['quoteHeadcount','Quote headcount','number'],
-  ['premiumPaid','Premium paid till date in expiry policy','number'],
-  ['uwQuote','Underwriting quote','number'],
-  ['claimsAsOn','Claims as on date','date'],
-  ['claims','Claims as on (Paid + O/S)','number'],
-  ['ibnrPct','IBNR loading %','pct'],
-  ['inflationPct','Inflation/Admin loading %','pct'],
-  ['tpaPct','TPA loading %','pct'],
-  ['brokeragePct','Brokerage %','pct'],
-  ['brokerTarget','Broker target price','number']
-];
-
-const pctKeys=new Set(['ibnrPct','inflationPct','tpaPct','brokeragePct']);
-
-function cell(ws,addr){const c=ws[addr];return c?c.v:null}
-function excelDate(v){
-  if(!v)return '';
-  if(v instanceof Date)return v.toISOString().slice(0,10);
-  if(typeof v==='number'){
-    const d=XLSX.SSF.parse_date_code(v);
-    if(!d)return '';
-    return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-  }
-  const d=new Date(v);
-  return isNaN(d)?'':d.toISOString().slice(0,10);
-}
-function num(v,d=0){let n=Number(String(v??'').replace(/,/g,''));return isFinite(n)?n:d}
-function money(n){
-  n=num(n);
-  if(!n)return '-';
-  const a=Math.abs(n),s=n<0?'-':'';
-  if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
-  if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
-  return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
-}
-function pct(n){if(!isFinite(num(n)))return '-';return (num(n)*100).toFixed(1)+'%'}
-function parseLocalDate(s){
-  if(!s)return null;
-  const [y,m,d]=String(s).slice(0,10).split('-').map(Number);
-  if(!y||!m||!d)return null;
-  return new Date(y,m-1,d);
-}
-function addYears(dt,yrs){const d=new Date(dt);d.setFullYear(d.getFullYear()+yrs);return d}
-function daysElapsedAuto(d=data){
-  const renewalStart=parseLocalDate(d.policyStart),claimsDate=parseLocalDate(d.claimsAsOn);
-  if(!renewalStart||!claimsDate)return 0;
-  const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
-  return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
-}
-function calc(d=data){
-  const de=daysElapsedAuto(d);
-  const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
-  const annual=de?num(d.claims)*365/de:0;
-  const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
-  const icrAnn=annual/Math.max(1,num(d.premiumPaid));
-  const inc=avg?annual*num(d.quoteHeadcount)/avg:0;
-  const ibnr=inc/(1-num(d.ibnrPct));
-  const infl=ibnr/(1-num(d.inflationPct));
-  const tpa=infl/(1-num(d.tpaPct));
-  const ref=tpa/(1-num(d.brokeragePct));
-  const diffRef=ref-num(d.brokerTarget);
-  const saveUw=num(d.uwQuote)-ref;
-  const targetBeforeBroker=num(d.brokerTarget)*(1-num(d.brokeragePct));
-  const reqLoadToTarget=inc?targetBeforeBroker/inc-1:0;
-  const currentCombinedLoad=inc?tpa/inc-1:0;
-  const loadGapToTarget=reqLoadToTarget-currentCombinedLoad;
-  return {daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,targetBeforeBroker,reqLoadToTarget,currentCombinedLoad,loadGapToTarget};
-}
-function approvalDataOnly(d=data){const obj={};fields.forEach(([k])=>obj[k]=d[k]);return obj}
-function dataSig(d=data){return JSON.stringify(approvalDataOnly(d))}
-function isChangedAfterApproval(){return !!(approval.approved&&approval.dataSig&&approval.dataSig!==dataSig(data))}
-function fmtDiff(v,type='money'){
-  if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
-  if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
-  return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
-}
-function updateHash(){
-  try{location.hash=btoa(unescape(encodeURIComponent(JSON.stringify({data,original,approval,verified,viewMode}))));}catch(e){}
-}
-function loadHash(){
-  if(location.hash.length>5){
-    try{
-      const obj=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
-      data={...blank,...obj.data};
-      original={...blank,...(obj.original||obj.data)};
-      approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:'',...(obj.approval||{})};
-      verified=!!obj.verified;
-      viewMode=obj.viewMode||'maker';
-      showAllInputs=viewMode!=='hod';
-      document.getElementById('status').textContent='Loaded shared URL data.';
-    }catch(e){}
-  }
-}
-function render(){
-  const c=calc(data),o=calc(original);
-  const changed=isChangedAfterApproval();
-  const banner=document.getElementById('approvalBanner');
-  const box=document.getElementById('approvalBox');
-
-  if(approval.approved){
-    banner.style.display='block';
-    banner.className='approvalBanner'+(changed?' tamperBanner':'');
-    banner.innerHTML=(changed?'⚠️ Numbers changed after HOD approval — review required again':`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`)+
-    `<span class="sub">${changed?'Earlier approval no longer matches current figures.':`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`}</span>`;
-    box.innerHTML=changed?'Approval status: <b style="color:#b42318">Changed after HOD approval - review again</b>':`Approval status: <b>Reviewed by HOD</b><br>${approval.approvedAt}`;
-  }else{
-    banner.style.display='none';
-    box.textContent='Approval status: Not reviewed by HOD.';
-  }
-
-  const mode=document.getElementById('modeBanner');
-  mode.className=viewMode==='hod'?'modeBanner':'modeBanner hidden';
-  mode.textContent='HOD review mode: only % loading fields are editable by default.';
-
-  document.getElementById('inputTitle').textContent=viewMode==='hod'?'2) HOD editable % inputs':'2) Maker / manual input fields';
-  document.getElementById('sourceInputs').className=(showAllInputs||viewMode!=='hod')?'showBox':'collapsedBox';
-
-  const pctBox=document.getElementById('pctInputs'),srcBox=document.getElementById('sourceInputs');
-  pctBox.innerHTML='';srcBox.innerHTML='';
-  fields.forEach(([k,l,t])=>{
-    const div=document.createElement('div');
-    div.className='row '+(pctKeys.has(k)?'inputRow':'outputRow');
-    let val=data[k]??'';
-    if(t==='pct')val=(num(val)*100).toString();
-    const editable=viewMode!=='hod'||pctKeys.has(k);
-    div.innerHTML=`<label>${l}</label><input class="${editable?'':'readonlyInput'}" id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}" ${editable?'':'readonly'}>`;
-    (pctKeys.has(k)?pctBox:srcBox).appendChild(div);
-    document.getElementById('f_'+k).onchange=e=>{
-      if(!editable)return;
-      data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
-      updateHash();render();
-    };
-  });
-
-  const quick=[
-    ['Client',data.clientName],['Policy start',data.policyStart],['Quote HC',data.quoteHeadcount],
-    ['Premium paid',money(data.premiumPaid)],['UW quote',money(data.uwQuote)],
-    ['Claims date',data.claimsAsOn],['Claims',money(data.claims)],['Broker target',money(data.brokerTarget)]
-  ];
-  document.getElementById('verifyPanel').innerHTML=quick.map(x=>`<div class="verifyItem"><div class="t">${x[0]}</div><div class="v">${x[1]||'-'}</div></div>`).join('');
-
-  document.getElementById('kRef').textContent=money(c.ref);
-  document.getElementById('kUw').textContent=money(data.uwQuote);
-  document.getElementById('kSave').textContent=money(c.saveUw);
-  document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';
-  document.getElementById('kIcr').textContent=pct(c.icrAnn);
-  document.getElementById('kReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('kReqLoadS').textContent=(c.loadGapToTarget>=0?'Can add ':'Need reduce ')+pct(Math.abs(c.loadGapToTarget));
-
-  document.getElementById('mRef').textContent=money(c.ref);
-  document.getElementById('mUw').textContent=money(data.uwQuote);
-  document.getElementById('mIcr').textContent=pct(c.icrAnn);
-  document.getElementById('mReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('mSave').textContent=money(c.saveUw);
-  document.getElementById('mNote').textContent=(changed?'⚠️ Changed after HOD approval - review again. ':'')+(c.loadGapToTarget<0?'Suggested: reduce total loading by ':'Suggested: total loading headroom ')+pct(Math.abs(c.loadGapToTarget));
-
-  document.getElementById('sCurrentLoad').textContent=pct(c.currentCombinedLoad);
-  document.getElementById('sReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('sGapLoad').textContent=(c.loadGapToTarget>=0?'+':'-')+pct(Math.abs(c.loadGapToTarget));
-  document.getElementById('sGapText').textContent=c.loadGapToTarget>=0?'Current REF is below target; loading can increase if required.':'Current REF is above target; reduce combined loading to match broker target.';
-  document.getElementById('sPriceGap').textContent=money(c.diffRef);
-
-  const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';
-  document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
-
-  const im=[
-    ['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],
-    ['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],
-    ['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],
-    ['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],
-    ['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')],
-    ['Loading needed for broker target',pct(o.reqLoadToTarget),pct(c.reqLoadToTarget),fmtDiff(c.reqLoadToTarget-o.reqLoadToTarget,'pct')]
-  ];
-  document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
-
-  const outs=[
-    ['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],
-    ['Average .ghost{background:#fff;color:#175cd3;border:1px solid #b2ccff}
-.warn{background:#b42318}
-.bar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.note{font-size:12px;color:var(--muted);line-height:1.45}
-.pill{display:inline-block;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700}
-.ok{background:#dcfae6;color:#067647}
-.bad{background:#fee4e2;color:#b42318}
-.mid{background:#fef0c7;color:#b54708}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:9px;border-bottom:1px solid #eef2f7;text-align:right}
-th:first-child,td:first-child{text-align:left}
-th{color:#475467;background:#f8fafc}
-#status{margin-top:8px}
-.small{font-size:11px;color:#667085}
-.hidden{display:none}
 .pos{color:#067647;font-weight:700}
 .neg{color:#b42318;font-weight:700}
 .approvalBanner{display:none;margin:0 0 14px;padding:12px 14px;border-radius:14px;border:1px solid #75e0a7;background:#ecfdf3;color:#05603a;font-weight:800}
 .approvalBanner .sub{display:block;font-size:12px;font-weight:600;color:#067647;margin-top:3px}
-.tamperBanner{display:block!important;border-color:#f04438!important;background:#fef3f2!important;color:#b42318!important}
-.tamperBanner .sub{color:#b42318!important}
 .approvalBox{border:1px dashed #98a2b3;background:#f8fafc;border-radius:14px;padding:10px;margin-top:8px}
 .impact{overflow-x:auto}
+#linkArea{display:none;margin-top:10px}
 .stickyResult{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#101828;color:#fff;padding:10px 14px;box-shadow:0 -8px 24px rgba(16,24,40,.18);display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stickyResult div{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px}
 .stickyResult .t{font-size:11px;color:#cbd5e1}
 .stickyResult .v{font-size:17px;font-weight:800;margin-top:2px}
 .stickyResult .full{grid-column:1/-1;font-size:11px;color:#cbd5e1}
-@media(min-width:800px){.stickyResult{left:50%;transform:translateX(-50%);max-width:1050px;border-radius:18px 18px 0 0;grid-template-columns:repeat(5,1fr)}.stickyResult .full{grid-column:auto}}
-.verifyGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-@media(min-width:800px){.verifyGrid{grid-template-columns:repeat(4,1fr)}}
-.verifyItem{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
-.verifyItem .t{font-size:11px;color:var(--muted)}
-.verifyItem .v{font-weight:800;margin-top:4px}
-.modeBanner{border:1px solid #b2ccff;background:#eff6ff;color:#1849a9;border-radius:14px;padding:10px;margin:10px 0;font-weight:700}
-.collapsedBox{display:none}
-.showBox{display:block}
-.readonlyInput{background:#f8fafc!important;color:#667085}
+@media(min-width:800px){.stickyResult{left:50%;transform:translateX(-50%);max-width:980px;border-radius:18px 18px 0 0;grid-template-columns:repeat(5,1fr)}.stickyResult .full{grid-column:auto}}
 </style>
 </head>
 <body>
-
 <header>
-  <h1>GMC RFQ Calculator</h1>
-  <p>Upload Excel → verify extracted values → generate HOD link → HOD edits % fields → approval / export</p>
+<h1>GMC RFQ Calculator</h1>
+<p>Upload Excel / fill manually → verify values → generate HOD link → HOD edits % fields → approval / export</p>
 </header>
 
 <div class="stickyResult">
-  <div><span class="t">Final REF price</span><div class="v" id="mRef">-</div></div>
-  <div><span class="t">UW premium</span><div class="v" id="mUw">-</div></div>
-  <div><span class="t">ICR annualised</span><div class="v" id="mIcr">-</div></div>
-  <div><span class="t">Target loading</span><div class="v" id="mReqLoad">-</div></div>
-  <div><span class="t">UW vs REF saving</span><div class="v" id="mSave">-</div></div>
-  <div class="full" id="mNote">Live result stays visible while HOD edits % inputs.</div>
+<div><span class="t">Final REF price</span><div class="v" id="mRef">-</div></div>
+<div><span class="t">UW premium</span><div class="v" id="mUw">-</div></div>
+<div><span class="t">ICR annualised</span><div class="v" id="mIcr">-</div></div>
+<div><span class="t">Target loading</span><div class="v" id="mTarget">-</div></div>
+<div><span class="t">UW vs REF saving</span><div class="v" id="mSave">-</div></div>
+<div class="full" id="mNote">Live result stays visible while HOD edits inputs.</div>
 </div>
 
 <main>
-  <div id="approvalBanner" class="approvalBanner"></div>
+<div id="approvalBanner" class="approvalBanner"></div>
 
-  <div class="card">
-    <h2>1) Upload / verify / share</h2>
-    <div id="modeBanner" class="modeBanner hidden"></div>
-    <input id="file" type="file" accept=".xlsx,.xls" style="text-align:left" />
+<section class="card">
+<h2>1) Upload / fill / verify / share</h2>
+<input id="file" type="file" accept=".xlsx,.xls" style="text-align:left">
+<div class="bar">
+<button class="ghost" id="fillManual">Fill manually online</button>
+<button class="ghost" id="verifyValues">Mark values verified</button>
+<button id="generateHod">Generate HOD review link</button>
+<button class="ghost" id="copyLink">Copy current link</button>
+<button class="secondary" id="exportXlsx">Export final Excel</button>
+<button class="ghost" id="approveHod">Final approval by HOD</button>
+<button class="ghost" id="clearApproval">Clear approval</button>
+<button class="ghost" id="resetBlank">Reset blank</button>
+<button class="ghost" id="resetOriginal">Reset to uploaded original</button>
+</div>
+<div id="status" class="note">Upload Excel or click Fill manually online.</div>
+<div id="approvalBox" class="approvalBox note">Approval status: Not reviewed by HOD.</div>
+<div id="linkArea">
+<div class="note"><b>Copied/generated link below.</b> Share this full long link on WhatsApp. Clean base link will not carry case data.</div>
+<textarea id="shareBox" readonly></textarea>
+</div>
+<div class="note">Data is stored inside the URL after #. After every edit/approval, click Generate HOD review link or Copy current link again.</div>
+</section>
 
-    <div class="bar">
-      <button id="verifyData" class="ghost">Mark uploaded values verified</button>
-      <button id="hodLink">Generate HOD review link</button>
-      <button id="copyLink" class="ghost">Copy current link</button>
-      <button class="secondary" id="exportXlsx">Export final Excel</button>
-      <button class="ghost" id="approveHod">Final approval by HOD</button>
-      <button class="ghost" id="clearApproval">Clear approval</button>
-      <button class="ghost" id="resetSample">Reset to sample</button>
-      <button class="ghost" id="resetOriginal">Reset to uploaded original</button>
-    </div>
+<section class="card">
+<h2>Live result</h2>
+<div class="kpis">
+<div class="kpi"><div class="t">REF price</div><div class="v" id="kRef">-</div><div class="s" id="kRefS"></div></div>
+<div class="kpi"><div class="t">UW quote</div><div class="v" id="kUw">-</div><div class="s" id="kUwS"></div></div>
+<div class="kpi"><div class="t">UW quote saving</div><div class="v" id="kSave">-</div><div class="s" id="kSaveS"></div></div>
+<div class="kpi"><div class="t">ICR annualised</div><div class="v" id="kIcr">-</div><div class="s" id="kIcrS"></div></div>
+</div>
+<div id="badge" style="margin-top:12px"></div>
+</section>
 
-    <div id="verifyPanel" class="verifyGrid"></div>
-    <div id="status" class="note">Upload Excel, verify extracted values, then generate HOD review link.</div>
-    <div id="approvalBox" class="approvalBox note">Approval status: Not reviewed by HOD.</div>
-    <div class="note">Works as a static HTML page. For online sharing, host this HTML on Netlify / GitHub Pages; the client data is stored inside the URL after #, not on a server.</div>
-  </div>
+<section class="card">
+<h2>HOD change impact on same screen</h2>
+<div class="impact">
+<table>
+<thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
+<tbody id="impact"></tbody>
+</table>
+</div>
+<div class="note">Original upload is locked as baseline when Excel is imported. Any orange-field change immediately updates this table and the KPI cards above.</div>
+</section>
 
-  <section class="card">
-    <h2>Live result</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">REF price</div><div class="v" id="kRef">-</div><div class="s" id="kRefS"></div></div>
-      <div class="kpi"><div class="t">UW quote</div><div class="v" id="kUw">-</div><div class="s" id="kUwS"></div></div>
-      <div class="kpi"><div class="t">UW quote saving</div><div class="v" id="kSave">-</div><div class="s" id="kSaveS"></div></div>
-      <div class="kpi"><div class="t">ICR annualised</div><div class="v" id="kIcr">-</div><div class="s" id="kIcrS"></div></div>
-      <div class="kpi"><div class="t">Loading needed for broker target</div><div class="v" id="kReqLoad">-</div><div class="s" id="kReqLoadS"></div></div>
-    </div>
-    <div id="badge" style="margin-top:12px"></div>
-  </section>
+<div class="grid">
+<section class="card" id="inputCard">
+<h2>2) Orange editable inputs</h2>
+<div class="note">HOD can edit orange input fields. Days elapsed / exposure days is auto-calculated and non-editable.</div>
+<div id="inputs"></div>
+</section>
 
-  <section class="card blue" id="suggestedLoadingCard">
-    <h2>Suggested loading to match broker target</h2>
-    <div class="kpis">
-      <div class="kpi"><div class="t">Current total loading before brokerage</div><div class="v" id="sCurrentLoad">-</div><div class="s">IBNR + inflation/admin + TPA compounded</div></div>
-      <div class="kpi"><div class="t">Required total loading</div><div class="v" id="sReqLoad">-</div><div class="s">To exactly match broker target</div></div>
-      <div class="kpi"><div class="t">Suggested change</div><div class="v" id="sGapLoad">-</div><div class="s" id="sGapText">-</div></div>
-      <div class="kpi"><div class="t">Current vs target price</div><div class="v" id="sPriceGap">-</div><div class="s">Final REF minus broker target</div></div>
-    </div>
-    <div class="note">This is a combined loading indication, not a forced split between IBNR, inflation/admin, and TPA. HOD can decide which % field to change.</div>
-  </section>
+<section class="card">
+<h2>3) Auto-calculated outputs</h2>
+<div id="outputs"></div>
+</section>
+</div>
 
-  <section class="card">
-    <h2>HOD change impact on same screen</h2>
-    <div class="impact">
-      <table>
-        <thead><tr><th>Metric</th><th>Original upload</th><th>Current HOD input</th><th>Change</th></tr></thead>
-        <tbody id="impact"></tbody>
-      </table>
-    </div>
-    <div class="note">Original upload is locked as baseline when Excel is imported. Any orange-field change immediately updates this table and the KPI cards above.</div>
-  </section>
-
-  <div class="grid">
-    <section class="card">
-      <h2 id="inputTitle">2) HOD editable % inputs</h2>
-      <div class="note" id="inputNote">By default HOD sees only percentage fields. Other uploaded inputs remain hidden unless opened for reference.</div>
-      <div class="bar"><button class="ghost" id="toggleAllInputs">View / hide uploaded source inputs</button></div>
-      <div id="pctInputs"></div>
-      <div id="sourceInputs" class="collapsedBox"></div>
-    </section>
-
-    <section class="card">
-      <h2>3) Auto-calculated outputs</h2>
-      <div id="outputs"></div>
-    </section>
-  </div>
-
-  <section class="card">
-    <h2>Calculation bridge</h2>
-    <table>
-      <thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
-      <tbody id="bridge"></tbody>
-    </table>
-  </section>
+<section class="card">
+<h2>Calculation bridge</h2>
+<table>
+<thead><tr><th>Step</th><th>Amount</th><th>Logic</th></tr></thead>
+<tbody id="bridge"></tbody>
+</table>
+</section>
 </main>
 
 <script>
 const sample={
-  clientName:'Sample - Parents',
-  policyStart:'2026-06-01',
-  lastHeadcount:1106,
-  quoteHeadcount:1324,
-  premiumPaid:28095825,
-  uwQuote:51610488,
-  claimsAsOn:'2026-05-06',
-  claims:32011918,
-  ibnrPct:0.03,
-  inflationPct:0.03,
-  tpaPct:0.03,
-  brokeragePct:0.075,
-  brokerTarget:42273882
+clientName:'Sample - Parents',
+policyStart:'2026-06-01',
+lastHeadcount:1106,
+quoteHeadcount:1324,
+premiumPaid:28095825,
+uwQuote:51610488,
+claimsAsOn:'2026-05-06',
+claims:32011918,
+ibnrPct:0.03,
+inflationPct:0.03,
+tpaPct:0.03,
+brokeragePct:0.075,
+brokerTarget:42273882
 };
 
 let data={...sample};
 let original={...sample};
-let approval={approved:false,approvedBy:'',approvedAt:'',note:'',dataSig:''};
-let verified=false;
-let viewMode='maker';
-let showAllInputs=false;
+let approval={approved:false,approvedBy:'',approvedAt:'',note:''};
 
 const fields=[
-  ['clientName','Client / Policy name','text'],
-  ['policyStart','Renewal policy start date','date'],
-  ['lastHeadcount','Last year inception headcount','number'],
-  ['quoteHeadcount','Quote headcount','number'],
-  ['premiumPaid','Premium paid till date in expiry policy','number'],
-  ['uwQuote','Underwriting quote','number'],
-  ['claimsAsOn','Claims as on date','date'],
-  ['claims','Claims as on (Paid + O/S)','number'],
-  ['ibnrPct','IBNR loading %','pct'],
-  ['inflationPct','Inflation/Admin loading %','pct'],
-  ['tpaPct','TPA loading %','pct'],
-  ['brokeragePct','Brokerage %','pct'],
-  ['brokerTarget','Broker target price','number']
+['clientName','Client / Policy name','text'],
+['policyStart','Renewal policy start date','date'],
+['lastHeadcount','Last year inception headcount','number'],
+['quoteHeadcount','Quote headcount','number'],
+['premiumPaid','Premium paid till date in expiry policy','number'],
+['uwQuote','Underwriting quote / UW premium','number'],
+['claimsAsOn','Claims as on date','date'],
+['claims','Claims as on (Paid + O/S)','number'],
+['ibnrPct','IBNR loading %','pct'],
+['inflationPct','Inflation/Admin loading %','pct'],
+['tpaPct','TPA loading %','pct'],
+['brokeragePct','Brokerage %','pct'],
+['brokerTarget','Broker target price','number']
 ];
 
-const pctKeys=new Set(['ibnrPct','inflationPct','tpaPct','brokeragePct']);
-
 function cell(ws,addr){const c=ws[addr];return c?c.v:null}
-function excelDate(v){
-  if(!v)return '';
-  if(v instanceof Date)return v.toISOString().slice(0,10);
-  if(typeof v==='number'){
-    const d=XLSX.SSF.parse_date_code(v);
-    if(!d)return '';
-    return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
-  }
-  let d=new Date(v);
-  return isNaN(d)?'':d.toISOString().slice(0,10);
-}
 function num(v,d=0){let n=Number(String(v??'').replace(/,/g,''));return isFinite(n)?n:d}
+function excelDate(v){
+ if(!v)return '';
+ if(v instanceof Date)return v.toISOString().slice(0,10);
+ if(typeof v==='number'){
+  const d=XLSX.SSF.parse_date_code(v);
+  if(!d)return '';
+  return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+ }
+ let d=new Date(v);
+ return isNaN(d)?'':d.toISOString().slice(0,10);
+}
 function money(n){
-  n=num(n);
-  const a=Math.abs(n);
-  let s=n<0?'-':'';
-  if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
-  if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
-  return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
+ n=num(n);const a=Math.abs(n);let s=n<0?'-':'';
+ if(a>=10000000)return s+'₹'+(a/10000000).toFixed(2)+' Cr';
+ if(a>=100000)return s+'₹'+(a/100000).toFixed(2)+' L';
+ return s+'₹'+a.toLocaleString('en-IN',{maximumFractionDigits:0});
 }
 function pct(n){return (num(n)*100).toFixed(1)+'%'}
 function parseLocalDate(s){
-  if(!s)return null;
-  const [y,m,d]=String(s).slice(0,10).split('-').map(Number);
-  if(!y||!m||!d)return null;
-  return new Date(y,m-1,d);
+ if(!s)return null;
+ const p=String(s).slice(0,10).split('-').map(Number);
+ if(p.length<3||!p[0]||!p[1]||!p[2])return null;
+ return new Date(p[0],p[1]-1,p[2]);
 }
 function addYears(dt,yrs){const d=new Date(dt);d.setFullYear(d.getFullYear()+yrs);return d}
 function daysElapsedAuto(d=data){
-  const renewalStart=parseLocalDate(d.policyStart),claimsDate=parseLocalDate(d.claimsAsOn);
-  if(!renewalStart||!claimsDate)return 0;
-  const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
-  return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
+ const renewalStart=parseLocalDate(d.policyStart);
+ const claimsDate=parseLocalDate(d.claimsAsOn);
+ if(!renewalStart||!claimsDate)return 0;
+ const exposureStart=claimsDate<renewalStart?addYears(renewalStart,-1):renewalStart;
+ return Math.max(1,Math.round((claimsDate-exposureStart)/(24*60*60*1000))+1);
 }
 function calc(d=data){
-  const de=daysElapsedAuto(d);
-  const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
-  const annual=num(d.claims)*365/Math.max(1,de);
-  const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
-  const icrAnn=annual/Math.max(1,num(d.premiumPaid));
-  const inc=annual*num(d.quoteHeadcount)/Math.max(1,avg);
-  const ibnr=inc/(1-num(d.ibnrPct));
-  const infl=ibnr/(1-num(d.inflationPct));
-  const tpa=infl/(1-num(d.tpaPct));
-  const ref=tpa/(1-num(d.brokeragePct));
-  const diffRef=ref-num(d.brokerTarget);
-  const saveUw=num(d.uwQuote)-ref;
-  const saveBroker=num(d.uwQuote)-num(d.brokerTarget);
-  const targetBeforeBroker=num(d.brokerTarget)*(1-num(d.brokeragePct));
-  const reqLoadToTarget=targetBeforeBroker/Math.max(1,inc)-1;
-  const currentCombinedLoad=tpa/Math.max(1,inc)-1;
-  const loadGapToTarget=reqLoadToTarget-currentCombinedLoad;
-  return {daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,saveBroker,targetBeforeBroker,reqLoadToTarget,currentCombinedLoad,loadGapToTarget};
+ const de=daysElapsedAuto(d);
+ const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2;
+ const annual=num(d.claims)*365/Math.max(1,de);
+ const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid));
+ const icrAnn=annual/Math.max(1,num(d.premiumPaid));
+ const inc=annual*num(d.quoteHeadcount)/Math.max(1,avg);
+ const ibnr=inc/(1-num(d.ibnrPct));
+ const infl=ibnr/(1-num(d.inflationPct));
+ const tpa=infl/(1-num(d.tpaPct));
+ const ref=tpa/(1-num(d.brokeragePct));
+ const diffRef=ref-num(d.brokerTarget);
+ const saveUw=num(d.uwQuote)-ref;
+ const saveBroker=num(d.uwQuote)-num(d.brokerTarget);
+ const targetLoading=(num(d.brokerTarget)/Math.max(1,ref))-1;
+ return{daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,saveBroker,targetLoading};
 }
-function approvalDataOnly(d=data){const obj={};fields.forEach(([k])=>{obj[k]=d[k];});return obj}
-function dataSig(d=data){return JSON.stringify(approvalDataOnly(d))}
-function isChangedAfterApproval(){return !!(approval.approved&&approval.dataSig&&approval.dataSig!==dataSig(data))}
 function fmtDiff(v,type='money'){
-  if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
-  if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
-  return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
+ if(type==='pct')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`;
+ if(type==='num')return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`;
+ return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;
 }
-
-function render(){
-  const c=calc(data);
-  const o=calc(original);
-  const banner=document.getElementById('approvalBanner');
-  const box=document.getElementById('approvalBox');
-  const changedAfterApproval=isChangedAfterApproval();
-
-  if(approval.approved){
-    const okTxt=`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`;
-    const okSub=`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`;
-    const warnTxt='⚠️ Numbers changed after HOD approval — review required again';
-    const warnSub=`Earlier approval: ${approval.approvedAt}${approval.approvedBy?' by '+approval.approvedBy:''}. Current figures no longer match approved version.`;
-    banner.style.display='block';
-    banner.className='approvalBanner'+(changedAfterApproval?' tamperBanner':'');
-    banner.innerHTML=(changedAfterApproval?warnTxt:okTxt)+`<span class="sub">${changedAfterApproval?warnSub:okSub}</span>`;
-    box.innerHTML=changedAfterApproval?'Approval status: <b style="color:#b42318">Changed after HOD approval - review again</b><br>'+warnSub:'Approval status: <b>Reviewed by HOD</b><br>'+okSub;
-  }else{
-    banner.style.display='none';
-    banner.className='approvalBanner';
-    banner.innerHTML='';
-    box.textContent='Approval status: Not reviewed by HOD.';
-  }
-
-  const modeBanner=document.getElementById('modeBanner');
-  modeBanner.className=viewMode==='hod'?'modeBanner':'modeBanner hidden';
-  modeBanner.textContent=viewMode==='hod'?'HOD review mode: only % loading fields are editable by default. Use View / hide uploaded source inputs only if reference is needed.':'';
-
-  document.getElementById('inputTitle').textContent=viewMode==='hod'?'2) HOD editable % inputs':'2) Maker inputs / HOD % inputs';
-  document.getElementById('inputNote').textContent=viewMode==='hod'?'Only percentage loadings are shown for action. Uploaded source figures are hidden by default to reduce accidental edits.':'Maker view shows all fields for checking and correction before HOD link generation.';
-
-  const pctBox=document.getElementById('pctInputs');
-  const srcBox=document.getElementById('sourceInputs');
-  pctBox.innerHTML='';
-  srcBox.innerHTML='';
-  srcBox.className=showAllInputs||viewMode!=='hod'?'showBox':'collapsedBox';
-
-  fields.forEach(([k,l,t])=>{
-    const div=document.createElement('div');
-    div.className='row '+(pctKeys.has(k)?'inputRow':'outputRow');
-    let val=data[k]??'';
-    if(t==='pct')val=(num(val)*100).toString();
-    const editable=(viewMode!=='hod')||pctKeys.has(k);
-    div.innerHTML=`<label>${l}</label><input class="${editable?'':'readonlyInput'}" id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}" ${editable?'':'readonly'}>`;
-    (pctKeys.has(k)?pctBox:srcBox).appendChild(div);
-    document.getElementById('f_'+k).onchange=e=>{
-      if(!editable)return;
-      data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
-      updateHash();
-      render();
-      if(isChangedAfterApproval())document.getElementById('status').textContent='Warning: numbers changed after HOD approval. Final approval must be done again before sharing/export.';
-    };
-  });
-
-  const vp=document.getElementById('verifyPanel');
-  const quick=[
-    ['Client',data.clientName],
-    ['Policy start',data.policyStart],
-    ['Quote HC',data.quoteHeadcount],
-    ['Premium paid',money(data.premiumPaid)],
-    ['UW quote',money(data.uwQuote)],
-    ['Claims as on',data.claimsAsOn],
-    ['Claims',money(data.claims)],
-    ['Broker target',money(data.brokerTarget)]
-  ];
-  vp.innerHTML=quick.map(x=>`<div class="verifyItem"><div class="t">${x[0]}</div><div class="v">${x[1]||'-'}</div></div>`).join('');
-
-  const outs=[
-    ['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],
-    ['Average lives',c.avg.toFixed(0),'outputRow'],
-    ['Annualised claims',money(c.annual),'outputRow'],
-    ['ICR actual',pct(c.icrAct),c.icrAct>0.95?'outputRow danger':'outputRow'],
-    ['ICR annualised',pct(c.icrAnn),c.icrAnn>0.95?'outputRow danger':'outputRow'],
-    ['Increased exposure',money(c.inc),'outputRow'],
-    ['After IBNR load',money(c.ibnr),'outputRow'],
-    ['After inflation/admin load',money(c.infl),'outputRow'],
-    ['After TPA load',money(c.tpa),'outputRow'],
-    ['Current combined load before brokerage',pct(c.currentCombinedLoad),'outputRow'],
-    ['Loading needed to match broker target',pct(c.reqLoadToTarget),c.loadGapToTarget<0?'outputRow danger':'outputRow blue'],
-    ['Gap vs current loading',fmtDiff(c.loadGapToTarget,'pct'),'outputRow'],
-    ['Final REF price',money(c.ref),'outputRow blue'],
-    ['Difference REF vs Broker target',money(c.diffRef),'outputRow'],
-    ['Difference UW quote vs REF',money(c.saveUw),'outputRow'],
-    ['Difference UW quote vs Broker target',money(c.saveBroker),'outputRow']
-  ];
-  document.getElementById('outputs').innerHTML=outs.map(x=>`<div class="row ${x[2]}"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
-
-  document.getElementById('kRef').textContent=money(c.ref);
-  document.getElementById('kRefS').textContent='Calculated final price';
-  document.getElementById('mRef').textContent=money(c.ref);
-  document.getElementById('mUw').textContent=money(data.uwQuote);
-  document.getElementById('mIcr').textContent=pct(c.icrAnn);
-  document.getElementById('mReqLoad').textContent=pct(c.reqLoadToTarget);
-  document.getElementById('mSave').textContent=money(c.saveUw);
-  document.getElementById('mNote').textContent=(changedAfterApproval?'⚠️ Changed after HOD approvalwalStart,-1) : renewalStart;
-  return Math.max(1, Math.round((claimsDate - exposureStart)/(24*60*60*1000)) + 1);
+function encodePayload(){
+ const json=JSON.stringify({data,original,approval});
+ return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
-function calc(d=data){const de=daysElapsedAuto(d); const avg=(num(d.lastHeadcount)+num(d.quoteHeadcount))/2; const annual=num(d.claims)*365/Math.max(1,de); const icrAct=num(d.claims)/Math.max(1,num(d.premiumPaid)); const icrAnn=annual/Math.max(1,num(d.premiumPaid)); const inc=annual*num(d.quoteHeadcount)/Math.max(1,avg); const ibnr=inc/(1-num(d.ibnrPct)); const infl=ibnr/(1-num(d.inflationPct)); const tpa=infl/(1-num(d.tpaPct)); const ref=tpa/(1-num(d.brokeragePct)); const diffRef=ref-num(d.brokerTarget); const saveUw=num(d.uwQuote)-ref; const saveBroker=num(d.uwQuote)-num(d.brokerTarget); return {daysElapsed:de,avg,annual,icrAct,icrAnn,inc,ibnr,infl,tpa,ref,diffRef,saveUw,saveBroker};}
-function fmtDiff(v,type='money'){ if(type==='pct') return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${pct(v)}</span>`; if(type==='num') return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${v.toFixed(0)}</span>`; return `<span class="${v>=0?'pos':'neg'}">${v>=0?'+':''}${money(v)}</span>`;}
-function render(){const c=calc(data); const o=calc(original);
- const banner=document.getElementById('approvalBanner'); const box=document.getElementById('approvalBox'); if(approval.approved){const txt=`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`; const sub=`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`; banner.style.display='block'; banner.innerHTML=txt+`<span class="sub">${sub}</span>`; box.innerHTML='Approval status: <b>Reviewed by HOD</b><br>'+sub;} else {banner.style.display='none'; banner.innerHTML=''; box.textContent='Approval status: Not reviewed by HOD.';} const inp=document.getElementById('inputs'); inp.innerHTML=''; fields.forEach(([k,l,t])=>{const div=document.createElement('div');div.className='row inputRow';let val=data[k]??''; if(t==='pct') val=(num(val)*100).toString(); div.innerHTML=`<label>${l}</label><input id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}">`; inp.appendChild(div); document.getElementById('f_'+k).onchange=e=>{data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value); updateHash(); render();};});
- const outs=[['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],['Average lives',c.avg.toFixed(0),'outputRow'],['Annualised claims',money(c.annual),'outputRow'],['ICR actual',pct(c.icrAct),c.icrAct>0.95?'outputRow danger':'outputRow'],['ICR annualised',pct(c.icrAnn),c.icrAnn>0.95?'outputRow danger':'outputRow'],['Increased exposure',money(c.inc),'outputRow'],['After IBNR load',money(c.ibnr),'outputRow'],['After inflation/admin load',money(c.infl),'outputRow'],['After TPA load',money(c.tpa),'outputRow'],['Final REF price',money(c.ref),'outputRow blue'],['Difference REF vs Broker target',money(c.diffRef),'outputRow'],['Difference UW quote vs REF',money(c.saveUw),'outputRow'],['Difference UW quote vs Broker target',money(c.saveBroker),'outputRow']];
- document.getElementById('outputs').innerHTML=outs.map(x=>`<div class="row ${x[2]}"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
- document.getElementById('kRef').textContent=money(c.ref); document.getElementById('kRefS').textContent='Calculated final price'; document.getElementById('mRef').textContent=money(c.ref); document.getElementById('mUw').textContent=money(data.uwQuote); document.getElementById('mIcr').textContent=pct(c.icrAnn); document.getElementById('mSave').textContent=money(c.saveUw); document.getElementById('mNote').textContent=(c.saveUw>=0?'REF is below UW quote by ':'REF is above UW quote by ')+money(Math.abs(c.saveUw)); document.getElementById('kUw').textContent=money(data.uwQuote); document.getElementById('kUwS').textContent='Uploaded/entered UW quote'; document.getElementById('kSave').textContent=money(c.saveUw); document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW'; document.getElementById('kIcr').textContent=pct(c.icrAnn); document.getElementById('kIcrS').textContent='Annualised claims / paid premium';
- const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok'; document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'} </span>`;
- const im=[['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')]];
- document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
- const rows=[['Paid + O/S claims',money(data.claims),'Uploaded E8'],['Days elapsed / exposure days',c.daysElapsed+' days','Auto: claims-as-on date minus exposure start; if renewal start is future, prior-year start is used'],['Annualised claims',money(c.annual),'Claims × 365 ÷ auto days elapsed'],['Exposure adjusted',money(c.inc),'Annualised × quote HC ÷ average lives'],['IBNR loaded',money(c.ibnr),'Exposure adjusted ÷ (1 - IBNR%)'],['Inflation/Admin loaded',money(c.infl),'IBNR loaded ÷ (1 - inflation/admin%)'],['TPA loaded',money(c.tpa),'Inflation loaded ÷ (1 - TPA%)'],['REF price',money(c.ref),'TPA loaded ÷ (1 - brokerage%)']];
- document.getElementById('bridge').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');}
-function packState(){return {v:5,data,original,approval};}
-function toUrlSafeBase64(str){return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-function fromUrlSafeBase64(str){str=String(str||'').replace(/-/g,'+').replace(/_/g,'/'); while(str.length%4) str+='='; return decodeURIComponent(escape(atob(str)));}
-function updateHash(){
+function decodePayload(str){
  try{
-   const payload=JSON.stringify(packState());
-   const encoded='s='+toUrlSafeBase64(payload);
-   history.replaceState(null,'',location.pathname+'#'+encoded);
-   localStorage.setItem('gmc_ref_last_state',payload);
- }catch(e){console.warn('State save failed',e);}
+  str=str.replace(/-/g,'+').replace(/_/g,'/');
+  while(str.length%4)str+='=';
+  return JSON.parse(decodeURIComponent(escape(atob(str))));
+ }catch(e){return null}
 }
-function applyLoadedObject(obj,source){
- if(obj && obj.data){data={...sample,...obj.data}; original={...sample,...(obj.original||obj.data)}; approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})}; document.getElementById('status').textContent='Loaded saved/shared data from '+source+'.'; return true;}
- if(obj && (obj.premiumPaid || obj.uwQuote || obj.claims)){data={...sample,...obj}; original={...data}; document.getElementById('status').textContent='Loaded old shared URL data.'; return true;}
- return false;
+function makeShareLink(){
+ const base=location.origin+location.pathname;
+ return base+'#'+encodePayload();
+}
+function saveState(){
+ localStorage.setItem('gmc_rfq_last_state',JSON.stringify({data,original,approval}));
+}
+function updateHash(){
+ const link=makeShareLink();
+ history.replaceState(null,'',link);
+ saveState();
+ return link;
+}
+async function copyText(txt,msg){
+ document.getElementById('linkArea').style.display='block';
+ document.getElementById('shareBox').value=txt;
+ try{
+  await navigator.clipboard.writeText(txt);
+  document.getElementById('status').textContent=msg+' Copied successfully.';
+ }catch(e){
+  document.getElementById('status').textContent=msg+' Copy manually from the box shown below.';
+  document.getElementById('shareBox').focus();
+  document.getElementById('shareBox').select();
+ }
 }
 function loadHash(){
- let loaded=false;
- if(location.hash.length>5){
-   const raw=location.hash.slice(1);
-   const candidates=[raw.startsWith('s=')?raw.slice(2):raw, raw];
-   for(const cand of candidates){
-     try{ const obj=JSON.parse(fromUrlSafeBase64(cand)); if(applyLoadedObject(obj,'URL')){loaded=true;break;} }catch(e){}
-     try{ const obj=JSON.parse(decodeURIComponent(escape(atob(cand)))); if(applyLoadedObject(obj,'old URL')){loaded=true;break;} }catch(e){}
-     try{ const obj=JSON.parse(decodeURIComponent(cand)); if(applyLoadedObject(obj,'URL text')){loaded=true;break;} }catch(e){}
-   }
-   if(!loaded) document.getElementById('status').textContent='Shared URL data could not be read. Use Copy share link again from the approved page.';
+ if(location.hash&&location.hash.length>5){
+  const obj=decodePayload(location.hash.slice(1));
+  if(obj&&obj.data){
+   data={...sample,...obj.data};
+   original={...sample,...(obj.original||obj.data)};
+   approval={approved:false,approvedBy:'',approvedAt:'',note:'',...(obj.approval||{})};
+   document.getElementById('status').textContent='Loaded saved data from shared link.';
+   return;
+  }
  }
- if(!loaded){
-   try{ const saved=localStorage.getItem('gmc_ref_last_state'); if(saved) applyLoadedObject(JSON.parse(saved),'this browser autosave'); }catch(e){}
- }
+ document.getElementById('status').textContent='Upload Excel or click Fill manually online.';
 }
-function importWorkbook(wb){const name=wb.SheetNames.includes('Parents')?'Parents':wb.SheetNames[0]; const ws=wb.Sheets[name]; data={clientName:name,policyStart:excelDate(cell(ws,'D1')),lastHeadcount:num(cell(ws,'F4')),quoteHeadcount:num(cell(ws,'F5')),premiumPaid:num(cell(ws,'E6')),uwQuote:num(cell(ws,'E7')),claimsAsOn:excelDate(cell(ws,'D8')),claims:num(cell(ws,'E8')),ibnrPct:num(cell(ws,'D11'),0.03),inflationPct:num(cell(ws,'D12'),0.03),tpaPct:num(cell(ws,'D13'),0.03),brokeragePct:num(cell(ws,'D14'),0.075),brokerTarget:num(cell(ws,'G14'))}; original={...data}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Imported sheet: '+name+'; days elapsed is now auto-calculated and locked.';}
-document.getElementById('file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true}); importWorkbook(wb);}catch(err){document.getElementById('status').textContent='Import failed: '+err.message;}}; r.readAsArrayBuffer(f);});
-document.getElementById('copyLink').onclick=async()=>{updateHash(); try{await navigator.clipboard.writeText(location.href); document.getElementById('status').textContent='Share link copied. This is the only link to share; it contains the latest inputs, remarks and HOD approval.'}catch(e){prompt('Copy this link',location.href)}};
-document.getElementById('approveHod').onclick=()=>{const name=prompt('HOD name / initials for approval badge (optional)','HOD')||'HOD'; const note=prompt('Approval note (optional)','Reviewed and approved for final export')||''; approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note}; updateHash(); render(); document.getElementById('status').textContent='HOD approval marked. Copy share link has also been updated. Share that full URL on WhatsApp.'};
-document.getElementById('clearApproval').onclick=()=>{approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='HOD approval cleared.'};
-document.getElementById('resetSample').onclick=()=>{data={...sample}; original={...sample}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Reset to attached Excel sample values.'};
-document.getElementById('resetOriginal').onclick=()=>{data={...original}; approval={approved:false,approvedBy:'',approvedAt:'',note:''}; updateHash(); render(); document.getElementById('status').textContent='Reset current inputs to uploaded original baseline. HOD approval cleared because numbers changed.'};
-document.getElementById('exportXlsx').onclick=()=>{const c=calc(data); const aoa=[['GMC RFQ Calculator Export'],[],['Approval status',approval.approved?'Reviewed by HOD':'Not reviewed'],['Approved by',approval.approvedBy||''],['Approved at',approval.approvedAt||''],['Approval note',approval.note||''],[],['Client / Policy',data.clientName],['Renewal policy start date',data.policyStart],['Claims as on',data.claimsAsOn],['Days elapsed / exposure days',c.daysElapsed],[],['Input','Value'],['Last HC',data.lastHeadcount],['Quote HC',data.quoteHeadcount],['Premium paid',data.premiumPaid],['UW Quote',data.uwQuote],['Claims Paid+O/S',data.claims],['IBNR %',data.ibnrPct],['Inflation/Admin %',data.inflationPct],['TPA %',data.tpaPct],['Brokerage %',data.brokeragePct],['Broker target',data.brokerTarget],[],['Output','Value'],['Average lives',c.avg],['Annualised claims',c.annual],['ICR actual',c.icrAct],['ICR annualised',c.icrAnn],['Increased exposure',c.inc],['After IBNR',c.ibnr],['After Inflation/Admin',c.infl],['After TPA',c.tpa],['Final REF price',c.ref],['Diff REF vs Broker target',c.diffRef],['Diff UW vs REF',c.saveUw]]; const wb=XLSX.utils.book_new(); const ws=XLSX.utils.aoa_to_sheet(aoa); XLSX.utils.book_append_sheet(wb,ws,'Final_Calculation'); XLSX.writeFile(wb,`GMC_RFQ_Final_${(data.clientName||'client').replace(/[^a-z0-9]/gi,'_')}.xlsx`);};
-loadHash();render();
+function render(){
+ const c=calc(data),o=calc(original);
+
+ const banner=document.getElementById('approvalBanner');
+ const box=document.getElementById('approvalBox');
+ if(approval.approved){
+  const txt=`✅ Calculation reviewed by HOD${approval.approvedBy?' - '+approval.approvedBy:''}`;
+  const sub=`Approved on ${approval.approvedAt}${approval.note?' | '+approval.note:''}`;
+  banner.style.display='block';
+  banner.innerHTML=txt+`<span class="sub">${sub}</span>`;
+  box.innerHTML='Approval status: <b>Reviewed by HOD</b><br>'+sub;
+ }else{
+  banner.style.display='none';
+  banner.innerHTML='';
+  box.textContent='Approval status: Not reviewed by HOD.';
+ }
+
+ const inp=document.getElementById('inputs');
+ inp.innerHTML='';
+ fields.forEach(([k,l,t])=>{
+  const div=document.createElement('div');
+  div.className='row inputRow';
+  let val=data[k]??'';
+  if(t==='pct')val=(num(val)*100).toString();
+  div.innerHTML=`<label>${l}</label><input id="f_${k}" type="${t==='date'?'date':t==='text'?'text':'number'}" step="${t==='pct'?'0.01':'any'}" value="${val}">`;
+  inp.appendChild(div);
+  document.getElementById('f_'+k).oninput=e=>{
+   data[k]=t==='pct'?num(e.target.value)/100:(t==='number'?num(e.target.value):e.target.value);
+   approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+   updateHash();
+   render();
+  };
+ });
+
+ const outs=[
+ ['Days elapsed / exposure days',c.daysElapsed+' days','outputRow blue'],
+ ['Average lives',c.avg.toFixed(0),'outputRow'],
+ ['Annualised claims',money(c.annual),'outputRow'],
+ ['ICR actual',pct(c.icrAct),c.icrAct>0.95?'outputRow danger':'outputRow'],
+ ['ICR annualised',pct(c.icrAnn),c.icrAnn>0.95?'outputRow danger':'outputRow'],
+ ['Increased exposure',money(c.inc),'outputRow'],
+ ['After IBNR load',money(c.ibnr),'outputRow'],
+ ['After inflation/admin load',money(c.infl),'outputRow'],
+ ['After TPA load',money(c.tpa),'outputRow'],
+ ['Final REF price',money(c.ref),'outputRow blue'],
+ ['Difference REF vs Broker target',money(c.diffRef),'outputRow'],
+ ['Difference UW quote vs REF',money(c.saveUw),'outputRow'],
+ ['Difference UW quote vs Broker target',money(c.saveBroker),'outputRow']
+ ];
+ document.getElementById('outputs').innerHTML=outs.map(x=>`<div class="row ${x[2]}"><label>${x[0]}</label><strong>${x[1]}</strong></div>`).join('');
+
+ document.getElementById('kRef').textContent=money(c.ref);
+ document.getElementById('kRefS').textContent='Calculated final price';
+ document.getElementById('kUw').textContent=money(data.uwQuote);
+ document.getElementById('kUwS').textContent='Uploaded/entered UW quote';
+ document.getElementById('kSave').textContent=money(c.saveUw);
+ document.getElementById('kSaveS').textContent=c.saveUw>=0?'REF below UW':'REF above UW';
+ document.getElementById('kIcr').textContent=pct(c.icrAnn);
+ document.getElementById('kIcrS').textContent='Annualised claims / paid premium';
+
+ document.getElementById('mRef').textContent=money(c.ref);
+ document.getElementById('mUw').textContent=money(data.uwQuote);
+ document.getElementById('mIcr').textContent=pct(c.icrAnn);
+ document.getElementById('mTarget').textContent=(c.targetLoading*100).toFixed(1)+'%';
+ document.getElementById('mSave').textContent=money(c.saveUw);
+ document.getElementById('mNote').textContent=(c.saveUw>=0?'REF is below UW quote by ':'REF is above UW quote by ')+money(Math.abs(c.saveUw));
+
+ const icrClass=c.icrAnn>1?'bad':c.icrAnn>.85?'mid':'ok';
+ document.getElementById('badge').innerHTML=`<span class="pill ${icrClass}">Status: ${c.icrAnn>1?'High ICR':c.icrAnn>.85?'Watch zone':'Comfortable'}</span>`;
+
+ const im=[
+ ['Days elapsed',o.daysElapsed+' days',c.daysElapsed+' days',fmtDiff(c.daysElapsed-o.daysElapsed,'num')],
+ ['Annualised claims',money(o.annual),money(c.annual),fmtDiff(c.annual-o.annual)],
+ ['Final REF price',money(o.ref),money(c.ref),fmtDiff(c.ref-o.ref)],
+ ['UW quote saving',money(o.saveUw),money(c.saveUw),fmtDiff(c.saveUw-o.saveUw)],
+ ['ICR annualised',pct(o.icrAnn),pct(c.icrAnn),fmtDiff(c.icrAnn-o.icrAnn,'pct')]
+ ];
+ document.getElementById('impact').innerHTML=im.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+
+ const rows=[
+ ['Paid + O/S claims',money(data.claims),'Uploaded/entered claims'],
+ ['Days elapsed / exposure days',c.daysElapsed+' days','Auto: claims-as-on date minus exposure start; if renewal start is future, prior-year start is used'],
+ ['Annualised claims',money(c.annual),'Claims × 365 ÷ auto days elapsed'],
+ ['Exposure adjusted',money(c.inc),'Annualised × quote HC ÷ average lives'],
+ ['IBNR loaded',money(c.ibnr),'Exposure adjusted ÷ (1 - IBNR%)'],
+ ['Inflation/Admin loaded',money(c.infl),'IBNR loaded ÷ (1 - inflation/admin%)'],
+ ['TPA loaded',money(c.tpa),'Inflation loaded ÷ (1 - TPA%)'],
+ ['REF price',money(c.ref),'TPA loaded ÷ (1 - brokerage%)']
+ ];
+ document.getElementById('bridge').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('');
+}
+function importWorkbook(wb){
+ const name=wb.SheetNames.includes('Parents')?'Parents':wb.SheetNames[0];
+ const ws=wb.Sheets[name];
+ data={
+  clientName:name,
+  policyStart:excelDate(cell(ws,'D1'))||sample.policyStart,
+  lastHeadcount:num(cell(ws,'F4')),
+  quoteHeadcount:num(cell(ws,'F5')),
+  premiumPaid:num(cell(ws,'E6')),
+  uwQuote:num(cell(ws,'E7')),
+  claimsAsOn:excelDate(cell(ws,'D8'))||sample.claimsAsOn,
+  claims:num(cell(ws,'E8')),
+  ibnrPct:num(cell(ws,'D11'),0.03),
+  inflationPct:num(cell(ws,'D12'),0.03),
+  tpaPct:num(cell(ws,'D13'),0.03),
+  brokeragePct:num(cell(ws,'D14'),0.075),
+  brokerTarget:num(cell(ws,'G14'))
+ };
+ original={...data};
+ approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+ updateHash();
+ render();
+ document.getElementById('status').textContent='Imported sheet: '+name+'. Now review orange inputs or generate HOD link.';
+ document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+document.getElementById('file').addEventListener('change',e=>{
+ const f=e.target.files[0];
+ if(!f)return;
+ if(typeof XLSX==='undefined'){
+  document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';
+  return;
+ }
+ const r=new FileReader();
+ r.onload=ev=>{
+  try{
+   const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+   importWorkbook(wb);
+  }catch(err){
+   document.getElementById('status').textContent='Import failed: '+err.message;
+  }
+ };
+ r.readAsArrayBuffer(f);
+});
+document.getElementById('fillManual').onclick=()=>{
+ render();
+ document.getElementById('inputCard').scrollIntoView({behavior:'smooth',block:'start'});
+ document.getElementById('status').textContent='Manual fields are visible below under Orange editable inputs.';
+};
+document.getElementById('verifyValues').onclick=()=>{
+ const link=updateHash();
+ document.getElementById('status').textContent='Values marked verified. Now click Generate HOD review link.';
+ document.getElementById('linkArea').style.display='block';
+ document.getElementById('shareBox').value=link;
+};
+document.getElementById('generateHod').onclick=async()=>{
+ const link=updateHash();
+ await copyText(link,'HOD review link generated.');
+};
+document.getElementById('copyLink').onclick=async()=>{
+ const link=updateHash();
+ await copyText(link,'Current share link generated.');
+};
+document.getElementById('approveHod').onclick=()=>{
+ const name=prompt('HOD name / initials for approval badge','HOD')||'HOD';
+ const note=prompt('Approval note','Reviewed and approved for final export')||'';
+ approval={approved:true,approvedBy:name,approvedAt:new Date().toLocaleString('en-IN'),note};
+ render();
+ const link=updateHash();
+ copyText(link,'HOD approval marked and reviewed link generated.');
+};
+document.getElementById('clearApproval').onclick=()=>{
+ approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+ render();
+ updateHash();
+ document.getElementById('status').textContent='HOD approval cleared.';
+};
+document.getElementById('resetBlank').onclick=()=>{
+ data={clientName:'',policyStart:'',lastHeadcount:0,quoteHeadcount:0,premiumPaid:0,uwQuote:0,claimsAsOn:'',claims:0,ibnrPct:0.03,inflationPct:0.03,tpaPct:0.03,brokeragePct:0.075,brokerTarget:0};
+ original={...data};
+ approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+ render();
+ updateHash();
+ document.getElementById('status').textContent='Reset to blank manual entry.';
+};
+document.getElementById('resetOriginal').onclick=()=>{
+ data={...original};
+ approval={approved:false,approvedBy:'',approvedAt:'',note:''};
+ render();
+ updateHash();
+ document.getElementById('status').textContent='Reset current inputs to uploaded original baseline. HOD approval cleared.';
+};
+document.getElementById('exportXlsx').onclick=()=>{
+ if(typeof XLSX==='undefined'){
+  document.getElementById('status').textContent='XLSX library not loaded. Check internet connection and refresh.';
+  return;
+ }
+ const c=calc(data);
+ const aoa=[
+ ['GMC RFQ Calculator Export'],
+ [],
+ ['Approval status',approval.approved?'Reviewed by HOD':'Not reviewed'],
+ ['Approved by',approval.approvedBy||''],
+ ['Approved at',approval.approvedAt||''],
+ ['Approval note',approval.note||''],
+ [],
+ ['Client / Policy',data.clientName],
+ ['Renewal policy start date',data.policyStart],
+ ['Claims as on',data.claimsAsOn],
+ ['Days elapsed / exposure days',c.daysElapsed],
+ [],
+ ['Input','Value'],
+ ['Last HC',data.lastHeadcount],
+ ['Quote HC',data.quoteHeadcount],
+ ['Premium paid',data.premiumPaid],
+ ['UW Quote / UW premium',data.uwQuote],
+ ['Claims Paid+O/S',data.claims],
+ ['IBNR %',data.ibnrPct],
+ ['Inflation/Admin %',data.inflationPct],
+ ['TPA %',data.tpaPct],
+ ['Brokerage %',data.brokeragePct],
+ ['Broker target',data.brokerTarget],
+ [],
+ ['Output','Value'],
+ ['Average lives',c.avg],
+ ['Annualised claims',c.annual],
+ ['ICR actual',c.icrAct],
+ ['ICR annualised',c.icrAnn],
+ ['Increased exposure',c.inc],
+ ['After IBNR',c.ibnr],
+ ['After Inflation/Admin',c.infl],
+ ['After TPA',c.tpa],
+ ['Final REF price',c.ref],
+ ['Diff REF vs Broker target',c.diffRef],
+ ['Diff UW vs REF',c.saveUw]
+ ];
+ const wb=XLSX.utils.book_new();
+ const ws=XLSX.utils.aoa_to_sheet(aoa);
+ XLSX.utils.book_append_sheet(wb,ws,'Final_Calculation');
+ XLSX.writeFile(wb,`GMC_RFQ_Final_${(data.clientName||'client').replace(/[^a-z0-9]/gi,'_')}.xlsx`);
+};
+loadHash();
+render();
 </script>
 </body>
 </html>
